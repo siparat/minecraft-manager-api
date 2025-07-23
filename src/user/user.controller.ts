@@ -9,7 +9,7 @@ import { UserEntity } from './entities/user.entity';
 
 @Controller('user')
 export class UserController {
-	constructor(private readonly userService: UserService) {}
+	constructor(private userService: UserService) {}
 
 	@UseGuards(JwtAuthGuard, new RoleGuard([UserRole.ADMIN]))
 	@UsePipes(ZodValidationPipe)
