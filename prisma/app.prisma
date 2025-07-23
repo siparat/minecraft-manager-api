@@ -9,14 +9,23 @@ model App {
     translations AppTranslation[]
 }
 
-model AppTranslation {
-    id       Int    @id @default(autoincrement())
-    appId    Int
-    language String
-    name     String
-    app      App    @relation(fields: [appId], references: [id])
+model Language {
+    id           Int              @id @default(autoincrement())
+    code         String           @unique
+    nameOriginal String
+    nameRu       String
+    translations AppTranslation[]
+}
 
-    @@unique([appId, language])
+model AppTranslation {
+    id         Int      @id @default(autoincrement())
+    app        App      @relation(fields: [appId], references: [id], onDelete: Cascade)
+    appId      Int
+    language   Language @relation(fields: [languageId], references: [id], onDelete: Cascade)
+    languageId Int
+    name       String
+
+    @@unique([appId, languageId])
 }
 
 enum AppStatus {

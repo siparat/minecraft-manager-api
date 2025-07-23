@@ -3,10 +3,10 @@ import { IUserEntity } from '../interfaces/user-entity.interface';
 import { compare, hash } from 'bcrypt';
 
 export class UserEntity implements IUserEntity {
-	id: number | undefined;
+	id?: number;
 	username: string;
 	password: string;
-	role: UserRole | undefined;
+	role?: UserRole;
 
 	constructor(user: IUserEntity) {
 		Object.assign(this, user);
