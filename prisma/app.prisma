@@ -7,6 +7,7 @@ model App {
     logo         String
     banner       String
     translations AppTranslation[]
+    mods         Mod[]
 }
 
 model Language {

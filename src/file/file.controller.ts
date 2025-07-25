@@ -37,4 +37,14 @@ export class FileController {
 		}
 		return result;
 	}
+
+	@UseInterceptors(FileInterceptor('modfile', { limits: { fileSize: 52428800 } }))
+	@UseGuards(JwtAuthGuard, new RoleGuard([UserRole.ADMIN]))
+	@Post('modfile')
+	async uploadMod(
+		@UploadedFile(new ParseFilePipe({ validators: [new FileTypeValidator({ fileType: /(zip|mc\w+)$/ })] }))
+		file: Express.Multer.File
+	): Promise<UploadedFileResponse> {
+		return this.fileService.saveFile(file);
+	}
 }

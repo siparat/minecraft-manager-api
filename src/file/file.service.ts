@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { path } from 'app-root-path';
 import { join } from 'path';
-import { ensureDirSync, exists, remove } from 'fs-extra';
+import { ensureDirSync, exists, remove, writeFile } from 'fs-extra';
 import { UploadedFileResponse } from './interfaces/uploaded-file-response.interface';
 import * as sharp from 'sharp';
 import { randomUUID } from 'crypto';
@@ -22,6 +22,15 @@ export class FileService {
 		const pathToUploadedFile = join(this.rootDir, filename);
 
 		await sharp(image.buffer).webp().toFile(pathToUploadedFile);
+		return { filename, url: join('/', this.uploadsRootDir, filename) };
+	}
+
+	async saveFile(file: Express.Multer.File): Promise<UploadedFileResponse> {
+		const ext = '.' + file.originalname.split('.').pop();
+		const filename = randomUUID() + ext;
+		const pathToUploadedFile = join(this.rootDir, filename);
+
+		await writeFile(pathToUploadedFile, file.buffer);
 		return { filename, url: join('/', this.uploadsRootDir, filename) };
 	}
 

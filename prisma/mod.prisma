@@ -1,0 +1,16 @@
+model Mod {
+    id          Int          @id @default(autoincrement())
+    createdAt   DateTime     @default(now())
+    updatedAt   DateTime     @updatedAt
+    title       String
+    description String
+    image       String
+    files       String[]
+    versions    ModVersion[]
+    apps        App[]
+}
+
+model ModVersion {
+    version String @id
+    mods    Mod[]
+}
