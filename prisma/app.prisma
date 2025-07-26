@@ -8,6 +8,16 @@ model App {
     banner       String
     translations AppTranslation[]
     mods         Mod[]
+    issues       AppIssue[]
+}
+
+model AppIssue {
+    id        Int         @id @default(autoincrement())
+    createdAt DateTime    @default(now())
+    text      String
+    status    IssueStatus @default(CREATED)
+    app       App         @relation(fields: [appId], references: [id])
+    appId     Int
 }
 
 model Language {
@@ -33,4 +43,10 @@ enum AppStatus {
     PLANNED
     IN_PROGRESS
     PUBLISHED
+}
+
+enum IssueStatus {
+    CREATED
+    SOLVED
+    DELETED
 }

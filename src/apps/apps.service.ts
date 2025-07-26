@@ -5,15 +5,18 @@ import { CreateAppDto } from './dto/create-app.dto';
 import { AppsErrorMessages } from './apps.constants';
 import { AppTranslationEntity } from './entities/app-translation.entity';
 import { AppsRepository } from './repositories/apps.repository';
-import { AppTranslation } from 'generated/prisma';
+import { AppTranslation, IssueStatus } from 'generated/prisma';
 import { UpdateAppDto } from './dto/update-app.dto';
 import { AppWithTranslations } from './interfaces/app.interface';
+import { AppIssueEntity } from './entities/app-issue.entity';
+import { AppIssueRepository } from './repositories/app-issue.repository';
 
 @Injectable()
 export class AppsService {
 	constructor(
 		private languageRepository: LanguageRepository,
-		private appsRepository: AppsRepository
+		private appsRepository: AppsRepository,
+		private appIssueRepository: AppIssueRepository
 	) {}
 
 	async createApp({ translations, ...otherDto }: CreateAppDto): Promise<AppEntity> {
@@ -81,6 +84,36 @@ export class AppsService {
 		}
 
 		await this.appsRepository.deleteById(appId);
+	}
+
+	async createIssue(appId: number, text: string): Promise<AppIssueEntity> {
+		const app = await this.appsRepository.findById(appId);
+		if (!app) {
+			throw new NotFoundException(AppsErrorMessages.NOT_FOUND);
+		}
+
+		const entity = new AppIssueEntity({ appId, text });
+		const issue = await this.appIssueRepository.createIssue(entity);
+		return new AppIssueEntity(issue);
+	}
+
+	async changeIssueStatus(appId: number, issueId: number, newStatus: IssueStatus): Promise<AppIssueEntity> {
+		const app = await this.appsRepository.findById(appId);
+		if (!app) {
+			throw new NotFoundException(AppsErrorMessages.NOT_FOUND);
+		}
+
+		const issue = await this.appIssueRepository.findById(issueId);
+		if (!issue) {
+			throw new NotFoundException(AppsErrorMessages.ISSUE_NOT_FOUND);
+		}
+
+		if (app.id !== issue.appId) {
+			throw new BadRequestException(AppsErrorMessages.ISSUE_IS_NOT_HIS);
+		}
+
+		const updatedIssue = await this.appIssueRepository.changeStatus(issueId, newStatus);
+		return new AppIssueEntity(updatedIssue);
 	}
 
 	private async validateTranslations(translations: Pick<AppTranslation, 'languageId' | 'name'>[]): Promise<boolean> {
