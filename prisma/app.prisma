@@ -9,6 +9,7 @@ model App {
     translations AppTranslation[]
     mods         Mod[]
     issues       AppIssue[]
+    sdk          AppSdk?
 }
 
 model AppIssue {
@@ -16,8 +17,25 @@ model AppIssue {
     createdAt DateTime    @default(now())
     text      String
     status    IssueStatus @default(CREATED)
-    app       App         @relation(fields: [appId], references: [id])
+    app       App         @relation(fields: [appId], references: [id], onDelete: Cascade)
     appId     Int
+}
+
+model AppSdk {
+    appId         Int     @unique
+    app           App     @relation(fields: [appId], references: [id], onDelete: Cascade)
+    isAdsEnabled  Boolean @default(true)
+    metricaToken  String?
+    appLovinToken String?
+    adMobToken    String?
+
+    firstOpenCode   String?
+    firstInterCode  String?
+    firstNativeCode String?
+
+    secondOpenCode   String?
+    secondInterCode  String?
+    secondNativeCode String?
 }
 
 model Language {

@@ -1,4 +1,10 @@
-import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+	BadRequestException,
+	ConflictException,
+	Injectable,
+	NotFoundException,
+	UnprocessableEntityException
+} from '@nestjs/common';
 import { LanguageRepository } from './repositories/language.repository';
 import { AppEntity } from './entities/app.entity';
 import { CreateAppDto } from './dto/create-app.dto';
@@ -10,13 +16,17 @@ import { UpdateAppDto } from './dto/update-app.dto';
 import { AppWithTranslations } from './interfaces/app.interface';
 import { AppIssueEntity } from './entities/app-issue.entity';
 import { AppIssueRepository } from './repositories/app-issue.repository';
+import { AppSdkEntity } from './entities/app-sdk.entity';
+import { UpdateSdkDto } from './dto/update-sdk.dto';
+import { AppSdkRepository } from './repositories/app-sdk.repository';
 
 @Injectable()
 export class AppsService {
 	constructor(
 		private languageRepository: LanguageRepository,
 		private appsRepository: AppsRepository,
-		private appIssueRepository: AppIssueRepository
+		private appIssueRepository: AppIssueRepository,
+		private appSdkRepository: AppSdkRepository
 	) {}
 
 	async createApp({ translations, ...otherDto }: CreateAppDto): Promise<AppEntity> {
@@ -114,6 +124,32 @@ export class AppsService {
 
 		const updatedIssue = await this.appIssueRepository.changeStatus(issueId, newStatus);
 		return new AppIssueEntity(updatedIssue);
+	}
+
+	async updateSdk(appId: number, dto: UpdateSdkDto): Promise<AppSdkEntity> {
+		const app = await this.appsRepository.findById(appId);
+		if (!app) {
+			throw new NotFoundException(AppsErrorMessages.NOT_FOUND);
+		}
+
+		const sdkEntity = new AppSdkEntity(dto);
+		const updatedSdk = await this.appSdkRepository.updateSdk(appId, sdkEntity);
+		return new AppSdkEntity(updatedSdk);
+	}
+
+	async toggleViewAds(appId: number): Promise<AppSdkEntity> {
+		const app = await this.appsRepository.findById(appId);
+		if (!app) {
+			throw new NotFoundException(AppsErrorMessages.NOT_FOUND);
+		}
+
+		if (!app.sdk) {
+			throw new UnprocessableEntityException(AppsErrorMessages.SDK_NOT_FOUND);
+		}
+
+		const sdkEntity = new AppSdkEntity({ isAdsEnabled: !app.sdk.isAdsEnabled });
+		const updatedSdk = await this.appSdkRepository.updateSdk(appId, sdkEntity);
+		return new AppSdkEntity(updatedSdk);
 	}
 
 	private async validateTranslations(translations: Pick<AppTranslation, 'languageId' | 'name'>[]): Promise<boolean> {

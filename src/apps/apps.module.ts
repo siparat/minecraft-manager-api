@@ -6,10 +6,11 @@ import { DatabaseModule } from 'src/database/database.module';
 import { LanguageRepository } from './repositories/language.repository';
 import { AppsRepository } from './repositories/apps.repository';
 import { AppIssueRepository } from './repositories/app-issue.repository';
+import { AppSdkRepository } from './repositories/app-sdk.repository';
 
 @Module({
 	imports: [FileModule, DatabaseModule],
 	controllers: [AppsController],
-	providers: [AppsService, LanguageRepository, AppsRepository, AppIssueRepository]
+	providers: [AppsService, LanguageRepository, AppsRepository, AppIssueRepository, AppSdkRepository]
 })
 export class AppsModule {}

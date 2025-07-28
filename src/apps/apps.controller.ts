@@ -30,6 +30,9 @@ import { CreateIssueDto } from './dto/create-issue.dto';
 import { AppIssueEntity } from './entities/app-issue.entity';
 import { AppIssueRepository } from './repositories/app-issue.repository';
 import { AppIssuesCounts } from './interfaces/app-issue.interface';
+import { UpdateSdkDto } from './dto/update-sdk.dto';
+import { AppSdkEntity } from './entities/app-sdk.entity';
+import { AppFullInfo } from './interfaces/app.interface';
 
 @Controller('apps')
 export class AppsController {
@@ -53,7 +56,7 @@ export class AppsController {
 
 	@UseGuards(JwtAuthGuard)
 	@Get(':id')
-	async getById(@Param('id', ParseIntPipe) id: number): Promise<App | null> {
+	async getById(@Param('id', ParseIntPipe) id: number): Promise<AppFullInfo | null> {
 		const app = await this.appsRepository.findById(id);
 		if (!app) {
 			throw new NotFoundException(AppsErrorMessages.NOT_FOUND);
@@ -128,5 +131,19 @@ export class AppsController {
 		@Param('issueId', ParseIntPipe) issueId: number
 	): Promise<AppIssueEntity> {
 		return this.appsService.changeIssueStatus(appId, issueId, IssueStatus.DELETED);
+	}
+
+	@UsePipes(ZodValidationPipe)
+	@UseGuards(JwtAuthGuard, new RoleGuard([UserRole.ADMIN]))
+	@Put(':id/sdk')
+	async updateSdk(@Body() dto: UpdateSdkDto, @Param('id', ParseIntPipe) appId: number): Promise<AppSdkEntity> {
+		console.log(dto);
+		return this.appsService.updateSdk(appId, dto);
+	}
+
+	@UseGuards(JwtAuthGuard, new RoleGuard([UserRole.ADMIN]))
+	@Post(':id/sdk/ads/toggle')
+	async toggleViewAds(@Param('id', ParseIntPipe) appId: number): Promise<AppSdkEntity> {
+		return this.appsService.toggleViewAds(appId);
 	}
 }

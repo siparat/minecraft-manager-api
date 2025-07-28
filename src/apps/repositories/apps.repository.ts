@@ -2,7 +2,7 @@ import { Injectable, InternalServerErrorException, Logger } from '@nestjs/common
 import { App, AppTranslation } from 'generated/prisma';
 import { DatabaseService } from 'src/database/database.service';
 import { AppEntity } from '../entities/app.entity';
-import { AppWithTranslations } from '../interfaces/app.interface';
+import { AppFullInfo, AppWithTranslations } from '../interfaces/app.interface';
 import { AppTranslationEntity } from '../entities/app-translation.entity';
 
 @Injectable()
@@ -12,7 +12,7 @@ export class AppsRepository {
 	async create(appEntity: AppEntity): Promise<App> {
 		try {
 			return await this.database.app.create({
-				data: { ...appEntity, translations: { createMany: { data: appEntity.translations } } }
+				data: { ...appEntity, translations: { createMany: { data: appEntity.translations } }, sdk: { create: {} } }
 			});
 		} catch (error) {
 			Logger.error(error);
@@ -21,7 +21,9 @@ export class AppsRepository {
 	}
 
 	getAll(): Promise<AppWithTranslations[]> {
-		return this.database.app.findMany({ include: { translations: { select: { name: true, language: true } } } });
+		return this.database.app.findMany({
+			include: { translations: { select: { name: true, language: true } } }
+		});
 	}
 
 	findByPackageName(name: string): Promise<AppWithTranslations | null> {
@@ -31,10 +33,10 @@ export class AppsRepository {
 		});
 	}
 
-	findById(id: number): Promise<AppWithTranslations | null> {
+	findById(id: number): Promise<AppFullInfo | null> {
 		return this.database.app.findUnique({
 			where: { id },
-			include: { translations: { select: { name: true, language: true } } }
+			include: { sdk: true, translations: { select: { name: true, language: true } } }
 		});
 	}
 
