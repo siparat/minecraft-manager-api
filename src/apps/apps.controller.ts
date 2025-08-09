@@ -137,7 +137,6 @@ export class AppsController {
 	@UseGuards(JwtAuthGuard, new RoleGuard([UserRole.ADMIN]))
 	@Put(':id/sdk')
 	async updateSdk(@Body() dto: UpdateSdkDto, @Param('id', ParseIntPipe) appId: number): Promise<AppSdkEntity> {
-		console.log(dto);
 		return this.appsService.updateSdk(appId, dto);
 	}
 

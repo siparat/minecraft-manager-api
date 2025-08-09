@@ -21,7 +21,6 @@ const startSeed = async (): Promise<void> => {
 				{ code: 'de', nameRu: 'Немецкий', nameOriginal: 'Deutsch' },
 				{ code: 'pt', nameRu: 'Португальский (Бразилия)', nameOriginal: 'Português (Brasil)' },
 				{ code: 'fr', nameRu: 'Французский (Франция)', nameOriginal: 'Français (France)' },
-				{ code: 'hi', nameRu: 'Хинди', nameOriginal: 'हिन्दी' },
 				{ code: 'ja', nameRu: 'Японский', nameOriginal: '日本語' },
 				{ code: 'it', nameRu: 'Итальянский', nameOriginal: 'Italiano' },
 				{ code: 'id', nameRu: 'Индонезийский', nameOriginal: 'Bahasa Indonesia' }
