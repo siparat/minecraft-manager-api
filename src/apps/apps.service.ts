@@ -19,6 +19,8 @@ import { AppIssueRepository } from './repositories/app-issue.repository';
 import { AppSdkEntity } from './entities/app-sdk.entity';
 import { UpdateSdkDto } from './dto/update-sdk.dto';
 import { AppSdkRepository } from './repositories/app-sdk.repository';
+import { ModRepository } from 'src/mod/repositories/mod.repository';
+import { ModErrorMessages } from 'src/mod/mod.constants';
 
 @Injectable()
 export class AppsService {
@@ -26,7 +28,8 @@ export class AppsService {
 		private languageRepository: LanguageRepository,
 		private appsRepository: AppsRepository,
 		private appIssueRepository: AppIssueRepository,
-		private appSdkRepository: AppSdkRepository
+		private appSdkRepository: AppSdkRepository,
+		private modRepository: ModRepository
 	) {}
 
 	async createApp({ translations, ...otherDto }: CreateAppDto): Promise<AppEntity> {
@@ -150,6 +153,21 @@ export class AppsService {
 		const sdkEntity = new AppSdkEntity({ isAdsEnabled: !app.sdk.isAdsEnabled });
 		const updatedSdk = await this.appSdkRepository.updateSdk(appId, sdkEntity);
 		return new AppSdkEntity(updatedSdk);
+	}
+
+	async toggleModFromApp(appId: number, modId: number): Promise<AppEntity> {
+		const app = await this.appsRepository.findById(appId);
+		if (!app) {
+			throw new NotFoundException(AppsErrorMessages.NOT_FOUND);
+		}
+
+		const mod = await this.modRepository.findById(modId);
+		if (!mod) {
+			throw new NotFoundException(ModErrorMessages.NOT_FOUND);
+		}
+
+		const updatedApp = await this.appsRepository.toggleModFromApp(appId, modId);
+		return new AppEntity(updatedApp);
 	}
 
 	private async validateTranslations(translations: Pick<AppTranslation, 'languageId' | 'name'>[]): Promise<boolean> {

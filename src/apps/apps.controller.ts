@@ -124,6 +124,16 @@ export class AppsController {
 		return this.appsService.changeIssueStatus(appId, issueId, IssueStatus.SOLVED);
 	}
 
+	@HttpCode(HttpStatus.OK)
+	@UseGuards(JwtAuthGuard, new RoleGuard([UserRole.ADMIN]))
+	@Post(':appId/mod/:modId/toggle')
+	async toggleMod(
+		@Param('appId', ParseIntPipe) appId: number,
+		@Param('modId', ParseIntPipe) modId: number
+	): Promise<AppEntity> {
+		return this.appsService.toggleModFromApp(appId, modId);
+	}
+
 	@UseGuards(JwtAuthGuard, new RoleGuard([UserRole.ADMIN]))
 	@Post(':id/issue/:issueId/delete')
 	async deleteAppIssue(

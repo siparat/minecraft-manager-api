@@ -12,7 +12,11 @@ export class AppsRepository {
 	async create(appEntity: AppEntity): Promise<App> {
 		try {
 			return await this.database.app.create({
-				data: { ...appEntity, translations: { createMany: { data: appEntity.translations } }, sdk: { create: {} } }
+				data: {
+					...appEntity,
+					translations: { createMany: { data: appEntity.translations } },
+					sdk: { create: {} }
+				}
 			});
 		} catch (error) {
 			Logger.error(error);
@@ -22,22 +26,41 @@ export class AppsRepository {
 
 	getAll(): Promise<AppWithTranslations[]> {
 		return this.database.app.findMany({
-			include: { translations: { select: { name: true, language: true } } }
+			include: { translations: { select: { name: true, language: true }, take: 1 }, _count: { select: { mods: true } } }
 		});
 	}
 
 	findByPackageName(name: string): Promise<AppWithTranslations | null> {
 		return this.database.app.findUnique({
 			where: { packageName: name },
-			include: { translations: { select: { name: true, language: true } } }
+			include: { translations: { select: { name: true, language: true } }, _count: { select: { mods: true } } }
 		});
 	}
 
 	findById(id: number): Promise<AppFullInfo | null> {
 		return this.database.app.findUnique({
 			where: { id },
-			include: { sdk: true, translations: { select: { name: true, language: true } } }
+			include: {
+				sdk: true,
+				translations: { select: { name: true, language: true } },
+				_count: { select: { mods: true } }
+			}
 		});
+	}
+
+	async toggleModFromApp(appId: number, modId: number): Promise<App> {
+		try {
+			const modIsConnected =
+				(await this.database.mod.findFirst({ where: { id: modId, apps: { some: { id: appId } } } })) !== null;
+			return this.database.app.update({
+				where: { id: appId },
+				include: { _count: { select: { mods: true } } },
+				data: { mods: modIsConnected ? { disconnect: { id: modId } } : { connect: { id: modId } } }
+			});
+		} catch (error) {
+			Logger.error(error);
+			throw new InternalServerErrorException('Произошла непредвиденная ошибка при добавлении мода в приложение');
+		}
 	}
 
 	async update(appId: number, { translations: _, ...appEntity }: AppEntity): Promise<AppWithTranslations> {
@@ -45,7 +68,7 @@ export class AppsRepository {
 			return await this.database.app.update({
 				where: { id: appId },
 				data: appEntity,
-				include: { translations: { select: { name: true, language: true } } }
+				include: { translations: { select: { name: true, language: true } }, _count: { select: { mods: true } } }
 			});
 		} catch (error) {
 			Logger.error(error);
