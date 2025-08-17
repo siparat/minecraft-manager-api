@@ -66,7 +66,7 @@ export class AppsService {
 			await this.updateTranslationsToApp(app, translations);
 		}
 
-		const { translations: _, ...appInfo } = app;
+		const { translations: _, sdk, _count, ...appInfo } = app;
 
 		const appEntity = new AppEntity({ ...appInfo, ...otherDto });
 		const updatedApp = await this.appsRepository.update(app.id, appEntity);
