@@ -11,7 +11,7 @@ import { CreateAppDto } from './dto/create-app.dto';
 import { AppsErrorMessages } from './apps.constants';
 import { AppTranslationEntity } from './entities/app-translation.entity';
 import { AppsRepository } from './repositories/apps.repository';
-import { AppTranslation, IssueStatus } from 'generated/prisma';
+import { AppStatus, AppTranslation, IssueStatus } from 'generated/prisma';
 import { UpdateAppDto } from './dto/update-app.dto';
 import { AppWithTranslations } from './interfaces/app.interface';
 import { AppIssueEntity } from './entities/app-issue.entity';
@@ -99,13 +99,13 @@ export class AppsService {
 		await this.appsRepository.deleteById(appId);
 	}
 
-	async createIssue(appId: number, text: string): Promise<AppIssueEntity> {
+	async createIssue(appId: number, email: string, text: string): Promise<AppIssueEntity> {
 		const app = await this.appsRepository.findById(appId);
 		if (!app) {
 			throw new NotFoundException(AppsErrorMessages.NOT_FOUND);
 		}
 
-		const entity = new AppIssueEntity({ appId, text });
+		const entity = new AppIssueEntity({ appId, email, text });
 		const issue = await this.appIssueRepository.createIssue(entity);
 		return new AppIssueEntity(issue);
 	}
@@ -153,6 +153,17 @@ export class AppsService {
 		const sdkEntity = new AppSdkEntity({ isAdsEnabled: !app.sdk.isAdsEnabled });
 		const updatedSdk = await this.appSdkRepository.updateSdk(appId, sdkEntity);
 		return new AppSdkEntity(updatedSdk);
+	}
+
+	async setNewStatus(appId: number, status: AppStatus): Promise<AppEntity> {
+		const app = await this.appsRepository.findById(appId);
+		if (!app) {
+			throw new NotFoundException(AppsErrorMessages.NOT_FOUND);
+		}
+
+		const appEntity = new AppEntity({ ...app, status });
+		await this.appsRepository.update(appId, appEntity);
+		return appEntity;
 	}
 
 	async toggleModFromApp(appId: number, modId: number): Promise<AppEntity> {

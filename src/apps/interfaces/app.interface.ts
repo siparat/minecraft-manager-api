@@ -6,5 +6,5 @@ export interface AppWithTranslations extends App {
 
 export interface AppFullInfo extends AppWithTranslations {
 	sdk: AppSdk | null;
-	_count: Record<string, number>
+	_count: Record<string, number>;
 }

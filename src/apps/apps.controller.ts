@@ -2,20 +2,25 @@ import {
 	Body,
 	Controller,
 	Delete,
+	FileTypeValidator,
 	Get,
 	HttpCode,
 	HttpStatus,
 	NotFoundException,
 	Param,
 	ParseEnumPipe,
+	ParseFilePipe,
 	ParseIntPipe,
+	Patch,
 	Post,
 	Put,
 	Query,
+	UploadedFile,
 	UseGuards,
+	UseInterceptors,
 	UsePipes
 } from '@nestjs/common';
-import { App, AppIssue, IssueStatus, Language, UserRole } from 'generated/prisma';
+import { App, AppIssue, AppStatus, IssueStatus, Language, UserRole } from 'generated/prisma';
 import { ZodValidationPipe } from 'nestjs-zod';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { RoleGuard } from 'src/user/guards/role.guard';
@@ -33,6 +38,9 @@ import { AppIssuesCounts } from './interfaces/app-issue.interface';
 import { UpdateSdkDto } from './dto/update-sdk.dto';
 import { AppSdkEntity } from './entities/app-sdk.entity';
 import { AppFullInfo } from './interfaces/app.interface';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { FileService } from 'src/file/file.service';
+import { AndroidBundleValidator } from './validators/android-bundle.validator';
 
 @Controller('apps')
 export class AppsController {
@@ -40,7 +48,8 @@ export class AppsController {
 		private appsService: AppsService,
 		private languageRepository: LanguageRepository,
 		private appsRepository: AppsRepository,
-		private appIssueRepository: AppIssueRepository
+		private appIssueRepository: AppIssueRepository,
+		private fileService: FileService
 	) {}
 
 	@Get('languages')
@@ -86,8 +95,11 @@ export class AppsController {
 
 	@UsePipes(ZodValidationPipe)
 	@Post(':id/issue')
-	async createIssue(@Body() { text }: CreateIssueDto, @Param('id', ParseIntPipe) id: number): Promise<AppIssueEntity> {
-		return this.appsService.createIssue(id, text);
+	async createIssue(
+		@Body() { text, email }: CreateIssueDto,
+		@Param('id', ParseIntPipe) id: number
+	): Promise<AppIssueEntity> {
+		return this.appsService.createIssue(id, email, text);
 	}
 
 	@UseGuards(JwtAuthGuard, new RoleGuard([UserRole.ADMIN]))
@@ -154,5 +166,60 @@ export class AppsController {
 	@Post(':id/sdk/ads/toggle')
 	async toggleViewAds(@Param('id', ParseIntPipe) appId: number): Promise<AppSdkEntity> {
 		return this.appsService.toggleViewAds(appId);
+	}
+
+	@UseGuards(JwtAuthGuard, new RoleGuard([UserRole.ADMIN]))
+	@Patch(':id/status/:status')
+	async setNewStatus(
+		@Param('id', ParseIntPipe) appId: number,
+		@Param('status', new ParseEnumPipe(AppStatus)) status: AppStatus
+	): Promise<AppEntity> {
+		return this.appsService.setNewStatus(appId, status);
+	}
+
+	@UseInterceptors(FileInterceptor('apk', { limits: { fileSize: 157286400 } }))
+	@UseGuards(JwtAuthGuard, new RoleGuard([UserRole.ADMIN]))
+	@Post(':id/apk')
+	async uploadApk(
+		@UploadedFile(
+			new ParseFilePipe({
+				validators: [new FileTypeValidator({ fileType: 'application/vnd.android.package-archive' })]
+			})
+		)
+		file: Express.Multer.File,
+		@Param('id', ParseIntPipe) appId: number
+	): Promise<AppEntity> {
+		const app = await this.appsRepository.findById(appId);
+		if (!app) {
+			throw new NotFoundException(AppsErrorMessages.NOT_FOUND);
+		}
+		const uploadedFile = await this.fileService.saveFile(file);
+		app.apk && (await this.fileService.deleteFile(app.apk));
+		const appEntity = new AppEntity({ ...app, apk: uploadedFile.url });
+		await this.appsRepository.update(appId, appEntity);
+		return appEntity;
+	}
+
+	@UseInterceptors(FileInterceptor('bundle', { limits: { fileSize: 157286400 } }))
+	@UseGuards(JwtAuthGuard, new RoleGuard([UserRole.ADMIN]))
+	@Post(':id/bundle')
+	async uploadBundle(
+		@UploadedFile(
+			new ParseFilePipe({
+				validators: [new AndroidBundleValidator()]
+			})
+		)
+		file: Express.Multer.File,
+		@Param('id', ParseIntPipe) appId: number
+	): Promise<AppEntity> {
+		const app = await this.appsRepository.findById(appId);
+		if (!app) {
+			throw new NotFoundException(AppsErrorMessages.NOT_FOUND);
+		}
+		const uploadedFile = await this.fileService.saveFile(file);
+		app.bundle && (await this.fileService.deleteFile(app.bundle));
+		const appEntity = new AppEntity({ ...app, bundle: uploadedFile.url });
+		await this.appsRepository.update(appId, appEntity);
+		return appEntity;
 	}
 }

@@ -6,6 +6,8 @@ model App {
     status       AppStatus        @default(PLANNED)
     logo         String
     banner       String
+    apk          String?
+    bundle       String?
     translations AppTranslation[]
     mods         Mod[]
     issues       AppIssue[]
@@ -15,6 +17,7 @@ model App {
 model AppIssue {
     id        Int         @id @default(autoincrement())
     createdAt DateTime    @default(now())
+    email     String
     text      String
     status    IssueStatus @default(CREATED)
     app       App         @relation(fields: [appId], references: [id], onDelete: Cascade)
