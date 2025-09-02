@@ -5,12 +5,13 @@ import {
 	ParseFilePipe,
 	Post,
 	UploadedFile,
+	UploadedFiles,
 	UseGuards,
 	UseInterceptors,
 	UsePipes
 } from '@nestjs/common';
 import { FileService } from './file.service';
-import { FileInterceptor } from '@nestjs/platform-express';
+import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
 import { UserRole } from 'generated/prisma';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { RoleGuard } from 'src/user/guards/role.guard';
@@ -38,13 +39,17 @@ export class FileController {
 		return result;
 	}
 
-	@UseInterceptors(FileInterceptor('modfile', { limits: { fileSize: 52428800 } }))
+	@UseInterceptors(FilesInterceptor('modfile', undefined, { limits: { fileSize: 52428800 } }))
 	@UseGuards(JwtAuthGuard, new RoleGuard([UserRole.ADMIN]))
 	@Post('modfile')
 	async uploadMod(
-		@UploadedFile(new ParseFilePipe({ validators: [new FileTypeValidator({ fileType: /(zip|mc\w+)$/ })] }))
-		file: Express.Multer.File
-	): Promise<UploadedFileResponse> {
-		return this.fileService.saveFile(file);
+		@UploadedFiles(new ParseFilePipe({ validators: [new FileTypeValidator({ fileType: /(zip|mc\w+)$/ })] }))
+		files: Express.Multer.File[]
+	): Promise<UploadedFileResponse[]> {
+		const result: UploadedFileResponse[] = [];
+		for (const file of files) {
+			result.push(await this.fileService.saveFile(file, true));
+		}
+		return result;
 	}
 }

@@ -12,7 +12,13 @@ export class ModEntity implements IModEntity {
 	versions: ModVersion[];
 
 	constructor(mod: IModEntity) {
-		Object.assign(this, mod);
+		this.id = mod.id;
+		this.createdAt = mod.createdAt;
+		this.updatedAt = mod.updatedAt;
+		this.title = mod.title;
+		this.description = mod.description;
+		this.image = mod.image;
+		this.files = mod.files;
 		this.versions = [];
 	}
 

@@ -6,6 +6,7 @@ import {
 	NotFoundException,
 	Param,
 	ParseArrayPipe,
+	ParseEnumPipe,
 	ParseIntPipe,
 	Post,
 	Put,
@@ -13,7 +14,7 @@ import {
 	UseGuards,
 	UsePipes
 } from '@nestjs/common';
-import { UserRole } from 'generated/prisma';
+import { ModVersion, Prisma, UserRole } from 'generated/prisma';
 import { ZodValidationPipe } from 'nestjs-zod';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { RoleGuard } from 'src/user/guards/role.guard';
@@ -23,7 +24,8 @@ import { CreateModDto } from './dto/create-mod.dto';
 import { UpdateModDto } from './dto/update-mod.dto';
 import { ModRepository } from './repositories/mod.repository';
 import { ModErrorMessages } from './mod.constants';
-import { ModWithVersions } from './interfaces/mod.interface';
+import { ModSearchResponse } from './interfaces/mod-search-response.interface';
+import { ModSortKeys } from './interfaces/mod-sort.interface';
 
 @Controller('mod')
 export class ModController {
@@ -37,11 +39,20 @@ export class ModController {
 		@Query('take', new ParseIntPipe({ optional: true })) take: number = 10,
 		@Query('skip', new ParseIntPipe({ optional: true })) skip: number = 0,
 		@Query('q') q?: string,
+		@Query('sort_key', new ParseEnumPipe(ModSortKeys, { optional: true })) sortKey?: (typeof ModSortKeys)[number],
+		@Query('sort_value', new ParseEnumPipe(Prisma.SortOrder, { optional: true })) sortValue?: Prisma.SortOrder,
 		@Query('versions', new ParseArrayPipe({ optional: true, separator: '+' })) versions?: string[]
-	): Promise<ModWithVersions[]> {
+	): Promise<ModSearchResponse> {
+		const sort = sortKey && sortValue ? { key: sortKey, value: sortValue } : undefined;
 		take = Math.max(0, take);
 		skip = Math.max(0, skip);
-		return this.modRepository.search(take, skip, q, versions);
+		return this.modRepository.search(take, skip, q, versions, sort);
+	}
+
+	@UseGuards(JwtAuthGuard)
+	@Get('versions')
+	async getAllVersions(): Promise<ModVersion[]> {
+		return this.modRepository.getAllVersions();
 	}
 
 	@Get(':id')

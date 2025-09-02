@@ -25,9 +25,9 @@ export class FileService {
 		return { filename, url: join('/', this.uploadsRootDir, filename) };
 	}
 
-	async saveFile(file: Express.Multer.File): Promise<UploadedFileResponse> {
+	async saveFile(file: Express.Multer.File, setOriginalName?: boolean): Promise<UploadedFileResponse> {
 		const ext = '.' + file.originalname.split('.').pop();
-		const filename = randomUUID() + ext;
+		const filename = setOriginalName ? file.originalname : randomUUID() + ext;
 		const pathToUploadedFile = join(this.rootDir, filename);
 
 		await writeFile(pathToUploadedFile, file.buffer);

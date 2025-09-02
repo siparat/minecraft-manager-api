@@ -1,20 +1,44 @@
 import { Injectable, InternalServerErrorException, Logger } from '@nestjs/common';
-import { Mod } from 'generated/prisma';
+import { Mod, ModVersion, Prisma } from 'generated/prisma';
 import { DatabaseService } from 'src/database/database.service';
 import { ModEntity } from '../entities/mod.entity';
 import { ModWithVersions } from '../interfaces/mod.interface';
+import { ModSearchResponse } from '../interfaces/mod-search-response.interface';
+import { ModSort } from '../interfaces/mod-sort.interface';
+import { ModSorts } from '../mod.constants';
 
 @Injectable()
 export class ModRepository {
 	constructor(private database: DatabaseService) {}
 
-	search(take: number, skip: number, q?: string, versions?: string[]): Promise<ModWithVersions[]> {
-		return this.database.mod.findMany({
-			where: { versions: { some: { version: { in: versions } } }, title: { contains: q, mode: 'insensitive' } },
+	async search(
+		take: number,
+		skip: number,
+		q?: string,
+		versions?: string[],
+		sort?: ModSort
+	): Promise<ModSearchResponse> {
+		const where = {
+			versions: versions ? { some: { version: { in: versions } } } : undefined,
+			title: { contains: q, mode: Prisma.QueryMode.insensitive }
+		};
+		const mods = await this.database.mod.findMany({
+			where,
 			take,
 			skip,
-			include: { versions: true }
+			include: { versions: true, _count: { select: { apps: true } } },
+			orderBy: sort ? ModSorts[sort.key](sort.value) : undefined
 		});
+		const count = await this.database.mod.count({ where });
+		return { count, mods };
+	}
+
+	count(): Promise<number> {
+		return this.database.mod.count();
+	}
+
+	getAllVersions(): Promise<ModVersion[]> {
+		return this.database.modVersion.findMany();
 	}
 
 	async create(modEntity: ModEntity): Promise<Mod> {
@@ -28,7 +52,8 @@ export class ModRepository {
 							create: { version }
 						}))
 					}
-				}
+				},
+				include: { versions: true, _count: { select: { apps: true } } }
 			});
 		} catch (error) {
 			Logger.error(error);
@@ -49,7 +74,8 @@ export class ModRepository {
 							create: { version }
 						}))
 					}
-				}
+				},
+				include: { versions: true, _count: { select: { apps: true } } }
 			});
 		} catch (error) {
 			Logger.error(error);
@@ -58,7 +84,10 @@ export class ModRepository {
 	}
 
 	async findById(id: number): Promise<ModWithVersions | null> {
-		return this.database.mod.findUnique({ where: { id }, include: { versions: true } });
+		return this.database.mod.findUnique({
+			where: { id },
+			include: { versions: true, _count: { select: { apps: true } } }
+		});
 	}
 
 	async delete(id: number): Promise<Mod> {
