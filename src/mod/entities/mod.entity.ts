@@ -5,6 +5,8 @@ export class ModEntity implements IModEntity {
 	id?: number;
 	createdAt?: Date;
 	updatedAt?: Date;
+	isParsed?: boolean;
+	descriptionImages: string[];
 	title: string;
 	description: string;
 	image: string;
@@ -19,6 +21,8 @@ export class ModEntity implements IModEntity {
 		this.description = mod.description;
 		this.image = mod.image;
 		this.files = mod.files;
+		this.isParsed = mod.isParsed || undefined;
+		this.descriptionImages = mod.descriptionImages || [];
 		this.versions = [];
 	}
 

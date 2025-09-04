@@ -8,6 +8,7 @@ import {
 	HttpStatus,
 	NotFoundException,
 	Param,
+	ParseArrayPipe,
 	ParseEnumPipe,
 	ParseFilePipe,
 	ParseIntPipe,
@@ -20,7 +21,7 @@ import {
 	UseInterceptors,
 	UsePipes
 } from '@nestjs/common';
-import { App, AppIssue, AppStatus, IssueStatus, Language, UserRole } from 'generated/prisma';
+import { App, AppIssue, AppStatus, IssueStatus, Language, Prisma, UserRole } from 'generated/prisma';
 import { ZodValidationPipe } from 'nestjs-zod';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { RoleGuard } from 'src/user/guards/role.guard';
@@ -37,10 +38,13 @@ import { AppIssueRepository } from './repositories/app-issue.repository';
 import { AppIssuesCounts } from './interfaces/app-issue.interface';
 import { UpdateSdkDto } from './dto/update-sdk.dto';
 import { AppSdkEntity } from './entities/app-sdk.entity';
-import { AppFullInfo } from './interfaces/app.interface';
+import { AppFullInfo, AppModStatus } from './interfaces/app.interface';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { FileService } from 'src/file/file.service';
 import { AndroidBundleValidator } from './validators/android-bundle.validator';
+import { ModSearchResponse } from 'src/mod/interfaces/mod-search-response.interface';
+import { ModSortKeys } from 'src/mod/interfaces/mod-sort.interface';
+import { ModRepository } from 'src/mod/repositories/mod.repository';
 
 @Controller('apps')
 export class AppsController {
@@ -49,6 +53,7 @@ export class AppsController {
 		private languageRepository: LanguageRepository,
 		private appsRepository: AppsRepository,
 		private appIssueRepository: AppIssueRepository,
+		private modRepository: ModRepository,
 		private fileService: FileService
 	) {}
 
@@ -134,6 +139,28 @@ export class AppsController {
 		@Param('issueId', ParseIntPipe) issueId: number
 	): Promise<AppIssueEntity> {
 		return this.appsService.changeIssueStatus(appId, issueId, IssueStatus.SOLVED);
+	}
+
+	@Get(':appId/mod/:status')
+	async searchModsFromApp(
+		@Param('appId', ParseIntPipe) appId: number,
+		@Param('status', new ParseEnumPipe(AppModStatus)) status: (typeof AppModStatus)[number],
+		@Query('take', new ParseIntPipe({ optional: true })) take: number = 10,
+		@Query('skip', new ParseIntPipe({ optional: true })) skip: number = 0,
+		@Query('q') q?: string,
+		@Query('sort_key', new ParseEnumPipe(ModSortKeys, { optional: true })) sortKey?: (typeof ModSortKeys)[number],
+		@Query('sort_value', new ParseEnumPipe(Prisma.SortOrder, { optional: true })) sortValue?: Prisma.SortOrder,
+		@Query('versions', new ParseArrayPipe({ optional: true, separator: '+' })) versions?: string[]
+	): Promise<ModSearchResponse> {
+		const app = await this.appsRepository.findById(appId);
+		if (!app) {
+			throw new NotFoundException(AppsErrorMessages.NOT_FOUND);
+		}
+		const searchIsActived = status == 'actived';
+		const sort = sortKey && sortValue ? { key: sortKey, value: sortValue } : undefined;
+		take = Math.max(0, take);
+		skip = Math.max(0, skip);
+		return this.modRepository.searchModsFromApp(appId, searchIsActived, take, skip, q, versions, sort);
 	}
 
 	@HttpCode(HttpStatus.OK)

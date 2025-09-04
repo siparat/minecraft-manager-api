@@ -33,6 +33,35 @@ export class ModRepository {
 		return { count, mods };
 	}
 
+	async searchModsFromApp(
+		appId: number,
+		isActive: boolean,
+		take: number,
+		skip: number,
+		q?: string,
+		versions?: string[],
+		sort?: ModSort
+	): Promise<ModSearchResponse> {
+		const where = {
+			versions: versions ? { some: { version: { in: versions } } } : undefined,
+			title: { contains: q, mode: Prisma.QueryMode.insensitive },
+			apps: isActive ? { some: { id: appId } } : { none: { id: appId } }
+		};
+		const mods = await this.database.mod.findMany({
+			where,
+			take,
+			skip,
+			include: {
+				versions: true,
+				_count: { select: { apps: true } },
+				apps: { select: { id: true }, where: { id: appId } }
+			},
+			orderBy: sort ? ModSorts[sort.key](sort.value) : undefined
+		});
+		const count = await this.database.mod.count({ where });
+		return { count, mods };
+	}
+
 	count(): Promise<number> {
 		return this.database.mod.count();
 	}

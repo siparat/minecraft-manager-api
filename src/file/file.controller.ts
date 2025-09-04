@@ -1,4 +1,5 @@
 import {
+	BadRequestException,
 	Body,
 	Controller,
 	FileTypeValidator,
@@ -28,10 +29,13 @@ export class FileController {
 	@UseGuards(JwtAuthGuard, new RoleGuard([UserRole.ADMIN]))
 	@Post('image')
 	async uploadImage(
-		@UploadedFile(new ParseFilePipe({ validators: [new FileTypeValidator({ fileType: 'image/png' })] }))
+		@UploadedFile(ParseFilePipe)
 		file: Express.Multer.File,
 		@Body() { oldImageFilename }: UploadImageDto
 	): Promise<UploadedFileResponse> {
+		if (!file.mimetype.includes('image')) {
+			throw new BadRequestException('Is not image');
+		}
 		const result = await this.fileService.uploadImage(file);
 		if (oldImageFilename) {
 			await this.fileService.deleteFile(oldImageFilename);

@@ -12,6 +12,7 @@ import { ModModule } from 'src/mod/mod.module';
 @Module({
 	imports: [FileModule, DatabaseModule, ModModule],
 	controllers: [AppsController],
-	providers: [AppsService, LanguageRepository, AppsRepository, AppIssueRepository, AppSdkRepository]
+	providers: [AppsService, LanguageRepository, AppsRepository, AppIssueRepository, AppSdkRepository],
+	exports: [AppsRepository]
 })
 export class AppsModule {}

@@ -9,8 +9,8 @@ import { ModErrorMessages } from './mod.constants';
 export class ModService {
 	constructor(private modRepository: ModRepository) {}
 
-	async create(dto: CreateModDto): Promise<ModEntity> {
-		const modEntity = new ModEntity(dto).setVersions(dto.versions.map((version) => ({ version })));
+	async create(dto: CreateModDto, isParsed: boolean = false): Promise<ModEntity> {
+		const modEntity = new ModEntity({ ...dto, isParsed }).setVersions(dto.versions.map((version) => ({ version })));
 		const mod = await this.modRepository.create(modEntity);
 		return new ModEntity(mod).setVersions(modEntity.versions);
 	}

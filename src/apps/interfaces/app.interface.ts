@@ -1,5 +1,7 @@
 import { App, AppSdk, AppTranslation, Language } from 'generated/prisma';
 
+export const AppModStatus = ['actived', 'inactived'] as const;
+
 export interface AppWithTranslations extends App {
 	translations: (Pick<AppTranslation, 'name'> & { language: Language })[];
 }
