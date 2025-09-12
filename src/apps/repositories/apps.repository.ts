@@ -26,7 +26,11 @@ export class AppsRepository {
 
 	getAll(): Promise<AppWithTranslations[]> {
 		return this.database.app.findMany({
-			include: { translations: { select: { name: true, language: true }, take: 1 }, _count: { select: { mods: true } } }
+			include: {
+				translations: { select: { name: true, language: true }, take: 1 },
+				_count: { select: { mods: true } }
+			},
+			orderBy: { createdAt: 'desc' }
 		});
 	}
 

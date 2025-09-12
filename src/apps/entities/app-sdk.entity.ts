@@ -12,6 +12,9 @@ export class AppSdkEntity implements IAppSdkEntity {
 	secondOpenCode?: string;
 	secondInterCode?: string;
 	secondNativeCode?: string;
+	thirdOpenCode?: string;
+	thirdInterCode?: string;
+	thirdNativeCode?: string;
 
 	constructor(sdk: IAppSdkEntity) {
 		Object.assign(this, sdk);

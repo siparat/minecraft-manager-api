@@ -13,6 +13,7 @@ export class AppEntity implements IAppEntity {
 	logo: string;
 	banner: string;
 	translations: AppTranslationEntity[];
+	appScreenshots: string[];
 
 	constructor(app: IAppEntity) {
 		this.id = app.id;
@@ -25,6 +26,11 @@ export class AppEntity implements IAppEntity {
 		this.bundle = app.bundle || undefined;
 		this.banner = app.banner;
 		this.translations = [];
+	}
+
+	setScreenshots(screenshots: string[]): this {
+		this.appScreenshots = screenshots;
+		return this;
 	}
 
 	setTranslations(translations: AppTranslationEntity[]): this {

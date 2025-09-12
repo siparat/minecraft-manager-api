@@ -21,7 +21,7 @@ export class FileService {
 		const filename = randomUUID() + '.webp';
 		const pathToUploadedFile = join(this.rootDir, filename);
 
-		await sharp(image.buffer).webp().toFile(pathToUploadedFile);
+		await sharp(image.buffer).webp({ quality: 80 }).toFile(pathToUploadedFile);
 		return { filename, url: join('/', this.uploadsRootDir, filename) };
 	}
 

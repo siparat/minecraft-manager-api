@@ -8,6 +8,7 @@ import { DeeplModule } from './integrations/deepl/deepl.module';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
 import { path } from 'app-root-path';
+import { ParserModule } from './parser/parser.module';
 
 @Module({
 	imports: [
@@ -16,6 +17,7 @@ import { path } from 'app-root-path';
 		UserModule,
 		AppsModule,
 		ModModule,
+		ParserModule,
 		DeeplModule,
 		ServeStaticModule.forRoot({
 			rootPath: `${join(path, 'uploads')}`,

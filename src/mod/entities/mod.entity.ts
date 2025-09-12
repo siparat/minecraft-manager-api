@@ -3,6 +3,8 @@ import { IModEntity } from '../interfaces/mod-entity.interface';
 
 export class ModEntity implements IModEntity {
 	id?: number;
+	parsedSlug?: string;
+	htmlDescription?: string;
 	createdAt?: Date;
 	updatedAt?: Date;
 	isParsed?: boolean;
@@ -22,6 +24,8 @@ export class ModEntity implements IModEntity {
 		this.image = mod.image;
 		this.files = mod.files;
 		this.isParsed = mod.isParsed || undefined;
+		this.parsedSlug = mod.parsedSlug || undefined;
+		this.htmlDescription = mod.htmlDescription || undefined;
 		this.descriptionImages = mod.descriptionImages || [];
 		this.versions = [];
 	}

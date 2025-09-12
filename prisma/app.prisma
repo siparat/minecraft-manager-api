@@ -1,17 +1,18 @@
 model App {
-    id           Int              @id @default(autoincrement())
-    createdAt    DateTime         @default(now())
-    updatedAt    DateTime         @updatedAt
-    packageName  String           @unique
-    status       AppStatus        @default(PLANNED)
-    logo         String
-    banner       String
-    apk          String?
-    bundle       String?
-    translations AppTranslation[]
-    mods         Mod[]
-    issues       AppIssue[]
-    sdk          AppSdk?
+    id             Int              @id @default(autoincrement())
+    createdAt      DateTime         @default(now())
+    updatedAt      DateTime         @updatedAt
+    packageName    String           @unique
+    status         AppStatus        @default(PLANNED)
+    logo           String
+    banner         String
+    apk            String?
+    bundle         String?
+    appScreenshots String[]         @default([])
+    translations   AppTranslation[]
+    mods           Mod[]
+    issues         AppIssue[]
+    sdk            AppSdk?
 }
 
 model AppIssue {
@@ -39,6 +40,10 @@ model AppSdk {
     secondOpenCode   String?
     secondInterCode  String?
     secondNativeCode String?
+
+    thirdOpenCode   String?
+    thirdInterCode  String?
+    thirdNativeCode String?
 }
 
 model Language {

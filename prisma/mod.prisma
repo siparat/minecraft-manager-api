@@ -1,11 +1,13 @@
 model Mod {
     id                Int          @id @default(autoincrement())
+	parsedSlug        String?      @unique
     createdAt         DateTime     @default(now())
     updatedAt         DateTime     @updatedAt
     isParsed          Boolean?     @default(false)
     descriptionImages String[]     @default([])
     title             String
     description       String
+	htmlDescription   String?
     image             String
     files             String[]
     versions          ModVersion[]

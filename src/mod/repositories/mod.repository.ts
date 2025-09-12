@@ -27,7 +27,7 @@ export class ModRepository {
 			take,
 			skip,
 			include: { versions: true, _count: { select: { apps: true } } },
-			orderBy: sort ? ModSorts[sort.key](sort.value) : undefined
+			orderBy: sort ? ModSorts[sort.key](sort.value) : { createdAt: 'desc' }
 		});
 		const count = await this.database.mod.count({ where });
 		return { count, mods };
@@ -68,6 +68,11 @@ export class ModRepository {
 
 	getAllVersions(): Promise<ModVersion[]> {
 		return this.database.modVersion.findMany();
+	}
+
+	async getModSlugs(): Promise<(string | null)[]> {
+		const mods = await this.database.mod.findMany({ where: { isParsed: true }, select: { parsedSlug: true } });
+		return mods.map(({ parsedSlug }) => parsedSlug);
 	}
 
 	async create(modEntity: ModEntity): Promise<Mod> {

@@ -1,4 +1,5 @@
 import {
+	BadRequestException,
 	Body,
 	Controller,
 	Delete,
@@ -17,6 +18,7 @@ import {
 	Put,
 	Query,
 	UploadedFile,
+	UploadedFiles,
 	UseGuards,
 	UseInterceptors,
 	UsePipes
@@ -39,7 +41,7 @@ import { AppIssuesCounts } from './interfaces/app-issue.interface';
 import { UpdateSdkDto } from './dto/update-sdk.dto';
 import { AppSdkEntity } from './entities/app-sdk.entity';
 import { AppFullInfo, AppModStatus } from './interfaces/app.interface';
-import { FileInterceptor } from '@nestjs/platform-express';
+import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
 import { FileService } from 'src/file/file.service';
 import { AndroidBundleValidator } from './validators/android-bundle.validator';
 import { ModSearchResponse } from 'src/mod/interfaces/mod-search-response.interface';
@@ -221,7 +223,10 @@ export class AppsController {
 			throw new NotFoundException(AppsErrorMessages.NOT_FOUND);
 		}
 		const uploadedFile = await this.fileService.saveFile(file);
-		app.apk && (await this.fileService.deleteFile(app.apk));
+		if (app.apk) {
+			const filename = app.apk.split('/').pop();
+			filename && (await this.fileService.deleteFile(filename));
+		}
 		const appEntity = new AppEntity({ ...app, apk: uploadedFile.url });
 		await this.appsRepository.update(appId, appEntity);
 		return appEntity;
@@ -244,9 +249,48 @@ export class AppsController {
 			throw new NotFoundException(AppsErrorMessages.NOT_FOUND);
 		}
 		const uploadedFile = await this.fileService.saveFile(file);
-		app.bundle && (await this.fileService.deleteFile(app.bundle));
+		if (app.bundle) {
+			const filename = app.bundle.split('/').pop();
+			filename && (await this.fileService.deleteFile(filename));
+		}
 		const appEntity = new AppEntity({ ...app, bundle: uploadedFile.url });
 		await this.appsRepository.update(appId, appEntity);
+		return appEntity;
+	}
+
+	@UseInterceptors(FilesInterceptor('screenshot', undefined, { limits: { fileSize: 1536000 } }))
+	@UseGuards(JwtAuthGuard, new RoleGuard([UserRole.ADMIN]))
+	@Post(':id/screenshots')
+	async uploadScreenshots(
+		@UploadedFiles()
+		files: Express.Multer.File[],
+		@Param('id', ParseIntPipe) appId: number
+	): Promise<AppEntity> {
+		const filesIncludesOnlyImage = !files.some((f) => !f.mimetype.includes('image'));
+		if (!filesIncludesOnlyImage) {
+			throw new BadRequestException('Некоторые файлы не прошли проверку');
+		}
+		const app = await this.appsRepository.findById(appId);
+		if (!app) {
+			throw new NotFoundException(AppsErrorMessages.NOT_FOUND);
+		}
+
+		const result: string[] = [];
+
+		for (const file of files) {
+			const uploadedFile = await this.fileService.uploadImage(file);
+			result.push(uploadedFile.url);
+		}
+
+		const appEntity = new AppEntity(app).setScreenshots(result);
+		await this.appsRepository.update(appId, appEntity);
+
+		for (const url of app.appScreenshots) {
+			const filename = url.split('/').pop()!;
+
+			await this.fileService.deleteFile(filename);
+		}
+
 		return appEntity;
 	}
 }
