@@ -109,7 +109,7 @@ export class AppsController {
 		return this.appsService.createIssue(id, email, text);
 	}
 
-	@UseGuards(JwtAuthGuard, new RoleGuard([UserRole.ADMIN]))
+	@UseGuards(JwtAuthGuard)
 	@Get(':id/issue')
 	async searchIssues(
 		@Param('id', ParseIntPipe) appId: number,
@@ -122,7 +122,7 @@ export class AppsController {
 		return this.appIssueRepository.search(appId, take, skip, status);
 	}
 
-	@UseGuards(JwtAuthGuard, new RoleGuard([UserRole.ADMIN]))
+	@UseGuards(JwtAuthGuard)
 	@Get(':id/issue/counts')
 	async getIssueCounts(@Param('id', ParseIntPipe) appId: number): Promise<AppIssuesCounts> {
 		const app = await this.appsRepository.findById(appId);
@@ -166,7 +166,7 @@ export class AppsController {
 	}
 
 	@HttpCode(HttpStatus.OK)
-	@UseGuards(JwtAuthGuard, new RoleGuard([UserRole.ADMIN]))
+	@UseGuards(JwtAuthGuard)
 	@Post(':appId/mod/:modId/toggle')
 	async toggleMod(
 		@Param('appId', ParseIntPipe) appId: number,
@@ -197,7 +197,7 @@ export class AppsController {
 		return this.appsService.toggleViewAds(appId);
 	}
 
-	@UseGuards(JwtAuthGuard, new RoleGuard([UserRole.ADMIN]))
+	@UseGuards(JwtAuthGuard)
 	@Patch(':id/status/:status')
 	async setNewStatus(
 		@Param('id', ParseIntPipe) appId: number,
@@ -207,7 +207,7 @@ export class AppsController {
 	}
 
 	@UseInterceptors(FileInterceptor('apk', { limits: { fileSize: 157286400 } }))
-	@UseGuards(JwtAuthGuard, new RoleGuard([UserRole.ADMIN]))
+	@UseGuards(JwtAuthGuard)
 	@Post(':id/apk')
 	async uploadApk(
 		@UploadedFile(
@@ -233,7 +233,7 @@ export class AppsController {
 	}
 
 	@UseInterceptors(FileInterceptor('bundle', { limits: { fileSize: 157286400 } }))
-	@UseGuards(JwtAuthGuard, new RoleGuard([UserRole.ADMIN]))
+	@UseGuards(JwtAuthGuard)
 	@Post(':id/bundle')
 	async uploadBundle(
 		@UploadedFile(
@@ -259,7 +259,7 @@ export class AppsController {
 	}
 
 	@UseInterceptors(FilesInterceptor('screenshot', undefined, { limits: { fileSize: 1536000 } }))
-	@UseGuards(JwtAuthGuard, new RoleGuard([UserRole.ADMIN]))
+	@UseGuards(JwtAuthGuard)
 	@Post(':id/screenshots')
 	async uploadScreenshots(
 		@UploadedFiles()

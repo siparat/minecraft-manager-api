@@ -1,11 +1,12 @@
 import { Injectable, InternalServerErrorException, Logger } from '@nestjs/common';
-import { Mod, ModVersion, Prisma } from 'generated/prisma';
+import { Language, Mod, ModVersion, Prisma } from 'generated/prisma';
 import { DatabaseService } from 'src/database/database.service';
 import { ModEntity } from '../entities/mod.entity';
 import { ModWithVersions } from '../interfaces/mod.interface';
 import { ModSearchResponse } from '../interfaces/mod-search-response.interface';
 import { ModSort } from '../interfaces/mod-sort.interface';
 import { ModSorts } from '../mod.constants';
+import { ModTranslationEntity } from '../entities/mod-translation.entity';
 
 @Injectable()
 export class ModRepository {
@@ -70,12 +71,25 @@ export class ModRepository {
 		return this.database.modVersion.findMany();
 	}
 
+	getAllLanguages(): Promise<Language[]> {
+		return this.database.language.findMany();
+	}
+
+	async saveTranslations(translations: ModTranslationEntity[]): Promise<void> {
+		try {
+			await this.database.modTranslation.createMany({ data: translations });
+		} catch (error) {
+			Logger.error(error);
+			throw new InternalServerErrorException('Произошла непредвиденная ошибка при создании перевода мода');
+		}
+	}
+
 	async getModSlugs(): Promise<(string | null)[]> {
 		const mods = await this.database.mod.findMany({ where: { isParsed: true }, select: { parsedSlug: true } });
 		return mods.map(({ parsedSlug }) => parsedSlug);
 	}
 
-	async create(modEntity: ModEntity): Promise<Mod> {
+	async create({ translations, ...modEntity }: ModEntity): Promise<Mod> {
 		try {
 			return await this.database.mod.create({
 				data: {
@@ -95,7 +109,7 @@ export class ModRepository {
 		}
 	}
 
-	async update(id: number, modEntity: ModEntity): Promise<Mod> {
+	async update(id: number, { translations, ...modEntity }: ModEntity): Promise<Mod> {
 		try {
 			return await this.database.mod.update({
 				where: { id },
@@ -120,7 +134,7 @@ export class ModRepository {
 	async findById(id: number): Promise<ModWithVersions | null> {
 		return this.database.mod.findUnique({
 			where: { id },
-			include: { versions: true, _count: { select: { apps: true } } }
+			include: { versions: true, translations: true, _count: { select: { apps: true } } }
 		});
 	}
 

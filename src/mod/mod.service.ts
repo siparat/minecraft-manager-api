@@ -4,10 +4,15 @@ import { CreateModDto } from './dto/create-mod.dto';
 import { ModRepository } from './repositories/mod.repository';
 import { UpdateModDto } from './dto/update-mod.dto';
 import { ModErrorMessages } from './mod.constants';
+import { ModTranslationEntity } from './entities/mod-translation.entity';
+import { DeeplGateway } from 'src/integrations/deepl/deepl.gateway';
 
 @Injectable()
 export class ModService {
-	constructor(private modRepository: ModRepository) {}
+	constructor(
+		private modRepository: ModRepository,
+		private deeplGateway: DeeplGateway
+	) {}
 
 	async create(dto: CreateModDto, isParsed: boolean = false): Promise<ModEntity> {
 		const modEntity = new ModEntity({ ...dto, isParsed }).setVersions(dto.versions.map((version) => ({ version })));
@@ -36,5 +41,27 @@ export class ModService {
 		}
 
 		await this.modRepository.delete(id);
+	}
+
+	async translateDescription(modId: number): Promise<void> {
+		const mod = await this.modRepository.findById(modId);
+		if (!mod) {
+			throw new NotFoundException(ModErrorMessages.NOT_FOUND);
+		}
+
+		const languages = await this.modRepository.getAllLanguages();
+
+		const translations: ModTranslationEntity[] = [];
+		for (const language of languages) {
+			const languageId = language.id;
+			if (language.code == 'en') {
+				translations.push(new ModTranslationEntity({ modId, languageId, description: mod.description }));
+				continue;
+			}
+			const response = await this.deeplGateway.translate(language.code, mod.description);
+			const description = response.translations[0].text;
+			translations.push(new ModTranslationEntity({ modId, languageId, description }));
+		}
+		await this.modRepository.saveTranslations(translations);
 	}
 }

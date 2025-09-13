@@ -13,9 +13,7 @@ import {
 } from '@nestjs/common';
 import { FileService } from './file.service';
 import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
-import { UserRole } from 'generated/prisma';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
-import { RoleGuard } from 'src/user/guards/role.guard';
 import { UploadedFileResponse } from './interfaces/uploaded-file-response.interface';
 import { ZodValidationPipe } from 'nestjs-zod';
 import { UploadImageDto } from './dto/upload-image.dto';
@@ -26,7 +24,7 @@ export class FileController {
 
 	@UsePipes(ZodValidationPipe)
 	@UseInterceptors(FileInterceptor('image', { limits: { fileSize: 1536000 } }))
-	@UseGuards(JwtAuthGuard, new RoleGuard([UserRole.ADMIN]))
+	@UseGuards(JwtAuthGuard)
 	@Post('image')
 	async uploadImage(
 		@UploadedFile(ParseFilePipe)
@@ -44,7 +42,7 @@ export class FileController {
 	}
 
 	@UseInterceptors(FilesInterceptor('modfile', undefined, { limits: { fileSize: 52428800 } }))
-	@UseGuards(JwtAuthGuard, new RoleGuard([UserRole.ADMIN]))
+	@UseGuards(JwtAuthGuard)
 	@Post('modfile')
 	async uploadMod(
 		@UploadedFiles(new ParseFilePipe({ validators: [new FileTypeValidator({ fileType: /(zip|mc\w+)$/ })] }))

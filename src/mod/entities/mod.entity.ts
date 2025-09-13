@@ -1,5 +1,6 @@
-import { ModVersion } from 'generated/prisma';
+import { ModTranslation, ModVersion } from 'generated/prisma';
 import { IModEntity } from '../interfaces/mod-entity.interface';
+import { ModTranslationEntity } from './mod-translation.entity';
 
 export class ModEntity implements IModEntity {
 	id?: number;
@@ -14,6 +15,7 @@ export class ModEntity implements IModEntity {
 	image: string;
 	files: string[];
 	versions: ModVersion[];
+	translations: ModTranslationEntity[];
 
 	constructor(mod: IModEntity) {
 		this.id = mod.id;
@@ -28,10 +30,16 @@ export class ModEntity implements IModEntity {
 		this.htmlDescription = mod.htmlDescription || undefined;
 		this.descriptionImages = mod.descriptionImages || [];
 		this.versions = [];
+		this.translations = [];
 	}
 
 	setVersions(versions: ModVersion[]): this {
 		this.versions = versions;
+		return this;
+	}
+
+	setTranslations(translations: ModTranslation[]): this {
+		this.translations = translations;
 		return this;
 	}
 }

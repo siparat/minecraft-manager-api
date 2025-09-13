@@ -1,3 +1,3 @@
-import { Mod } from 'generated/prisma';
+import { Mod, ModTranslation } from 'generated/prisma';
 
-export type ModWithVersions = Mod & { versions: { version: string }[] };
+export type ModWithVersions = Mod & { versions: { version: string }[]; translations: ModTranslation[] };

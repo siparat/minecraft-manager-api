@@ -32,13 +32,7 @@ export class ParserService {
 			Logger.error(`Файлы у мода ${title} отсутствуют`);
 			return null;
 		}
-		const filteredDownloads: Download[] = [];
-		for (const download of downloads) {
-			if (filteredDownloads.some(({ file }) => file == download.file)) {
-				continue;
-			}
-			filteredDownloads.push(download);
-		}
+		const filteredDownloads = Array.from(new Map(downloads.map((d) => [d.file, d])).values());
 
 		const versions = window.__NUXT__?.state?.slug?.model?.minecraft_versions.map(({ name }) => name) || [];
 
@@ -48,7 +42,7 @@ export class ParserService {
 		}
 		const divDescription = window.document.createElement('div');
 		divDescription.innerHTML = descriptionHtml;
-		const description = (divDescription.textContent || '').trim();
+		const description = (divDescription.textContent || '').trim().replace(/\n{2,}/g, '\n');
 
 		const descriptionImages = window.__NUXT__?.state?.slug?.model?.submission_images || [];
 
@@ -59,7 +53,7 @@ export class ParserService {
 			description,
 			descriptionHtml,
 			descriptionImages,
-			downloads,
+			downloads: filteredDownloads,
 			image
 		};
 	}

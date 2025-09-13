@@ -21,6 +21,7 @@ import { UpdateSdkDto } from './dto/update-sdk.dto';
 import { AppSdkRepository } from './repositories/app-sdk.repository';
 import { ModRepository } from 'src/mod/repositories/mod.repository';
 import { ModErrorMessages } from 'src/mod/mod.constants';
+import { ModService } from 'src/mod/mod.service';
 
 @Injectable()
 export class AppsService {
@@ -29,7 +30,8 @@ export class AppsService {
 		private appsRepository: AppsRepository,
 		private appIssueRepository: AppIssueRepository,
 		private appSdkRepository: AppSdkRepository,
-		private modRepository: ModRepository
+		private modRepository: ModRepository,
+		private modService: ModService
 	) {}
 
 	async createApp({ translations, ...otherDto }: CreateAppDto): Promise<AppEntity> {
@@ -178,6 +180,9 @@ export class AppsService {
 		}
 
 		const updatedApp = await this.appsRepository.toggleModFromApp(appId, modId);
+		if (!mod.translations.length) {
+			await this.modService.translateDescription(modId);
+		}
 		return new AppEntity(updatedApp);
 	}
 

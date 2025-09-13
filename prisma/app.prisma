@@ -47,11 +47,12 @@ model AppSdk {
 }
 
 model Language {
-    id           Int              @id @default(autoincrement())
-    code         String           @unique
-    nameOriginal String
-    nameRu       String
-    translations AppTranslation[]
+    id              Int              @id @default(autoincrement())
+    code            String           @unique
+    nameOriginal    String
+    nameRu          String
+    translations    AppTranslation[]
+    modTranslations ModTranslation[]
 }
 
 model AppTranslation {

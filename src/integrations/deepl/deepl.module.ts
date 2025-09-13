@@ -7,6 +7,7 @@ import { getDeeplHttpConfig } from 'src/configs/deepl-http.config';
 @Module({
 	imports: [HttpModule.registerAsync(getDeeplHttpConfig())],
 	controllers: [DeeplController],
-	providers: [DeeplGateway]
+	providers: [DeeplGateway],
+	exports: [DeeplGateway]
 })
 export class DeeplModule {}

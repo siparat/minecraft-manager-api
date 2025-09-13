@@ -49,7 +49,6 @@ export class ModController {
 		return this.modRepository.search(take, skip, q, versions, sort);
 	}
 
-	@UseGuards(JwtAuthGuard)
 	@Get('versions')
 	async getAllVersions(): Promise<ModVersion[]> {
 		return this.modRepository.getAllVersions();
@@ -61,17 +60,17 @@ export class ModController {
 		if (!mod) {
 			throw new NotFoundException(ModErrorMessages.NOT_FOUND);
 		}
-		return new ModEntity(mod).setVersions(mod.versions);
+		return new ModEntity(mod).setVersions(mod.versions).setTranslations(mod.translations);
 	}
 
 	@UsePipes(ZodValidationPipe)
-	@UseGuards(JwtAuthGuard, new RoleGuard([UserRole.ADMIN]))
+	@UseGuards(JwtAuthGuard)
 	@Post()
 	async create(@Body() dto: CreateModDto): Promise<ModEntity> {
 		return this.modService.create(dto);
 	}
 
-	@UseGuards(JwtAuthGuard, new RoleGuard([UserRole.ADMIN]))
+	@UseGuards(JwtAuthGuard)
 	@UsePipes(ZodValidationPipe)
 	@Put(':id')
 	async update(@Param('id', ParseIntPipe) id: number, @Body() dto: UpdateModDto): Promise<ModEntity> {
