@@ -26,6 +26,7 @@ import { ModRepository } from './repositories/mod.repository';
 import { ModErrorMessages } from './mod.constants';
 import { ModSearchResponse } from './interfaces/mod-search-response.interface';
 import { ModSortKeys } from './interfaces/mod-sort.interface';
+import { ApiTags } from '@nestjs/swagger';
 
 @Controller('mod')
 export class ModController {
@@ -54,6 +55,7 @@ export class ModController {
 		return this.modRepository.getAllVersions();
 	}
 
+	@ApiTags('for-builders')
 	@Get(':id')
 	async getById(@Param('id', ParseIntPipe) id: number): Promise<ModEntity> {
 		const mod = await this.modRepository.findById(id);

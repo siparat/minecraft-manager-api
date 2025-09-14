@@ -47,6 +47,7 @@ import { AndroidBundleValidator } from './validators/android-bundle.validator';
 import { ModSearchResponse } from 'src/mod/interfaces/mod-search-response.interface';
 import { ModSortKeys } from 'src/mod/interfaces/mod-sort.interface';
 import { ModRepository } from 'src/mod/repositories/mod.repository';
+import { ApiBody, ApiOperation, ApiParam, ApiQuery, ApiTags } from '@nestjs/swagger';
 
 @Controller('apps')
 export class AppsController {
@@ -70,7 +71,8 @@ export class AppsController {
 		return this.appsRepository.getAll();
 	}
 
-	@UseGuards(JwtAuthGuard)
+	@ApiTags('for-builders')
+	@ApiOperation({ summary: 'Получение информации о приложении' })
 	@Get(':id')
 	async getById(@Param('id', ParseIntPipe) id: number): Promise<AppFullInfo | null> {
 		const app = await this.appsRepository.findById(id);
@@ -100,6 +102,18 @@ export class AppsController {
 		await this.appsService.deleteApp(appId);
 	}
 
+	@ApiParam({
+		name: 'id',
+		type: Number,
+		description: 'ID приложения',
+		required: true
+	})
+	@ApiBody({
+		required: true,
+		examples: { 'Создание претензии': { value: { text: 'Текст претензии', email: 'a@b.ru' } } }
+	})
+	@ApiTags('for-builders')
+	@ApiOperation({ summary: 'Создание претензии' })
 	@UsePipes(ZodValidationPipe)
 	@Post(':id/issue')
 	async createIssue(
@@ -143,6 +157,60 @@ export class AppsController {
 		return this.appsService.changeIssueStatus(appId, issueId, IssueStatus.SOLVED);
 	}
 
+	@ApiTags('for-builders')
+	@ApiOperation({
+		summary: 'Поиск модов у приложения',
+		description: 'Позволяет искать моды у конкретного приложения с фильтрацией, сортировкой и пагинацией.'
+	})
+	@ApiParam({
+		name: 'appId',
+		type: Number,
+		description: 'ID приложения',
+		example: 42
+	})
+	@ApiParam({
+		name: 'status',
+		enum: AppModStatus,
+		description: 'Статус мода'
+	})
+	@ApiQuery({
+		name: 'take',
+		type: Number,
+		required: false,
+		description: 'Сколько элементов вернуть (по умолчанию 10)',
+		example: 10
+	})
+	@ApiQuery({
+		name: 'skip',
+		type: Number,
+		required: false,
+		description: 'Сколько элементов пропустить (по умолчанию 0)',
+		example: 0
+	})
+	@ApiQuery({
+		name: 'q',
+		type: String,
+		required: false,
+		description: 'Поисковая строка'
+	})
+	@ApiQuery({
+		name: 'sort_key',
+		enum: ModSortKeys,
+		required: false,
+		description: 'Поле для сортировки'
+	})
+	@ApiQuery({
+		name: 'sort_value',
+		enum: Prisma.SortOrder,
+		required: false,
+		description: 'Порядок сортировки (asc или desc)'
+	})
+	@ApiQuery({
+		name: 'versions',
+		type: String,
+		required: false,
+		description: 'Фильтр по версиям, несколько через `+`'
+	})
 	@Get(':appId/mod/:status')
 	async searchModsFromApp(
 		@Param('appId', ParseIntPipe) appId: number,
