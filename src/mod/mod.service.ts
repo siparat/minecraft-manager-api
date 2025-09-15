@@ -6,12 +6,15 @@ import { UpdateModDto } from './dto/update-mod.dto';
 import { ModErrorMessages } from './mod.constants';
 import { ModTranslationEntity } from './entities/mod-translation.entity';
 import { DeeplGateway } from 'src/integrations/deepl/deepl.gateway';
+import { ConfigService } from '@nestjs/config';
+import { Mod } from 'generated/prisma';
 
 @Injectable()
 export class ModService {
 	constructor(
 		private modRepository: ModRepository,
-		private deeplGateway: DeeplGateway
+		private deeplGateway: DeeplGateway,
+		private config: ConfigService
 	) {}
 
 	async create(dto: CreateModDto, isParsed: boolean = false): Promise<ModEntity> {
@@ -63,5 +66,31 @@ export class ModService {
 			translations.push(new ModTranslationEntity({ modId, languageId, description }));
 		}
 		await this.modRepository.saveTranslations(translations);
+	}
+
+	async searchDeprecatedMods(): Promise<(Pick<Mod, 'parsedSlug' | 'title'> & { url: string; packageName: string })[]> {
+		const apps = await this.modRepository.getUsedModsId();
+		const host = this.config.get('HOST_MODS_API');
+
+		const result: (Pick<Mod, 'parsedSlug' | 'title'> & { url: string; packageName: string })[] = [];
+
+		for (const app of apps) {
+			for (const mod of app.mods) {
+				if (!mod.parsedSlug) continue;
+
+				const url = new URL(mod.parsedSlug, host);
+				const response = await fetch(url);
+				if (new URL(response.url).pathname === '/notfound/') {
+					result.push({
+						parsedSlug: mod.parsedSlug,
+						url: url.toString(),
+						title: mod.title,
+						packageName: app.packageName
+					});
+				}
+			}
+		}
+
+		return result;
 	}
 }

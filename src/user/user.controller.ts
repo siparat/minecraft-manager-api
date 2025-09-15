@@ -8,7 +8,7 @@ import { CreateBuilderAccountDto } from './dto/create-builder-account.dto';
 import { UserEntity } from './entities/user.entity';
 import { Request } from 'express';
 import { AuthErrorMessages } from 'src/auth/auth.constants';
-import { ApiBody, ApiTags } from '@nestjs/swagger';
+import { ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger';
 
 @Controller('user')
 export class UserController {
@@ -24,6 +24,7 @@ export class UserController {
 		return entity;
 	}
 
+	@ApiOperation({ summary: 'Создание сборщика' })
 	@ApiBody({
 		required: true,
 		examples: { 'Создание сборщика': { value: { username: 'username', password: 'password' } } }

@@ -3,6 +3,9 @@ import {
 	Controller,
 	Delete,
 	Get,
+	HttpCode,
+	HttpStatus,
+	Logger,
 	NotFoundException,
 	Param,
 	ParseArrayPipe,
@@ -11,6 +14,7 @@ import {
 	Post,
 	Put,
 	Query,
+	Res,
 	UseGuards,
 	UsePipes
 } from '@nestjs/common';
@@ -26,13 +30,20 @@ import { ModRepository } from './repositories/mod.repository';
 import { ModErrorMessages } from './mod.constants';
 import { ModSearchResponse } from './interfaces/mod-search-response.interface';
 import { ModSortKeys } from './interfaces/mod-sort.interface';
-import { ApiTags } from '@nestjs/swagger';
+import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { Telegraf } from 'telegraf';
+import { InjectBot } from 'nestjs-telegraf';
+import { Cron, CronExpression } from '@nestjs/schedule';
+import { ConfigService } from '@nestjs/config';
+import { Response } from 'express';
 
 @Controller('mod')
 export class ModController {
 	constructor(
 		private modService: ModService,
-		private modRepository: ModRepository
+		private modRepository: ModRepository,
+		@InjectBot() private bot: Telegraf,
+		private config: ConfigService
 	) {}
 
 	@Get('search')
@@ -84,5 +95,32 @@ export class ModController {
 	@Delete(':id')
 	async delete(@Param('id', ParseIntPipe) id: number): Promise<void> {
 		return this.modService.delete(id);
+	}
+
+	@ApiTags('for-admin')
+	@ApiOperation({ summary: 'Запуск поиска неактуальных модов' })
+	@HttpCode(HttpStatus.OK)
+	@UseGuards(JwtAuthGuard)
+	@Post('check-deprecated-mods')
+	@Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
+	async detectDeprecatedMods(@Res() res: Response): Promise<void> {
+		const adminId = this.config.get('ADMIN_CHAT_ID');
+		if (!adminId) {
+			res.sendStatus(HttpStatus.BAD_REQUEST);
+			Logger.error('Администратор не найден, невозможно отправить список неактуальных модов');
+		}
+		res.sendStatus(HttpStatus.OK);
+		const deprecatedMods = await this.modService.searchDeprecatedMods();
+		if (!deprecatedMods.length) {
+			return;
+		}
+
+		const message = `Найдено *${deprecatedMods.length}* модов, отсутствующих у хоста:${deprecatedMods.map(({ url, title, packageName }) => `\n\n[${url.toString()}](${url.toString()}) | ${title} (*${packageName}*)`)}`;
+
+		try {
+			await this.bot.telegram.sendMessage(adminId, message, { parse_mode: 'Markdown' });
+		} catch (error) {
+			Logger.error(error);
+		}
 	}
 }

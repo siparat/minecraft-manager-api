@@ -75,6 +75,25 @@ export class ModRepository {
 		return this.database.language.findMany();
 	}
 
+	async getUsedModsId(): Promise<
+		{
+			id: number;
+			mods: {
+				parsedSlug: string | null;
+				title: string;
+			}[];
+			packageName: string;
+		}[]
+	> {
+		return await this.database.app.findMany({
+			select: {
+				id: true,
+				packageName: true,
+				mods: { where: { isParsed: true, parsedSlug: { not: null } }, select: { parsedSlug: true, title: true } }
+			}
+		});
+	}
+
 	async saveTranslations(translations: ModTranslationEntity[]): Promise<void> {
 		try {
 			await this.database.modTranslation.createMany({ data: translations });

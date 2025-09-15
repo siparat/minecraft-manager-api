@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, OnApplicationBootstrap } from '@nestjs/common';
 import { AuthModule } from './auth/auth.module';
 import { ConfigModule } from '@nestjs/config';
 import { UserModule } from './user/user.module';
@@ -9,9 +9,13 @@ import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
 import { path } from 'app-root-path';
 import { ParserModule } from './parser/parser.module';
+import { InjectBot, TelegrafModule } from 'nestjs-telegraf';
+import { getTelegrafConfig } from './configs/telegraf.config';
+import { Telegraf } from 'telegraf';
 
 @Module({
 	imports: [
+		TelegrafModule.forRootAsync(getTelegrafConfig()),
 		ConfigModule.forRoot({ isGlobal: true }),
 		AuthModule,
 		UserModule,
@@ -28,4 +32,10 @@ import { ParserModule } from './parser/parser.module';
 		})
 	]
 })
-export class AppModule {}
+export class AppModule implements OnApplicationBootstrap {
+	constructor(@InjectBot() private bot: Telegraf) {}
+
+	onApplicationBootstrap(): void {
+		this.bot.on('message', (ctx) => ctx.reply(`User ID: ${ctx.from.id}\nChat ID: ${ctx.chat.id}`));
+	}
+}
