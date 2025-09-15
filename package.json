@@ -12,7 +12,7 @@
     "start": "nest start",
     "start:dev": "nest start --watch",
     "start:debug": "nest start --debug --watch",
-    "start:prod": "node dist/main",
+    "start:prod": "npm run migrate:deploy && npm run seed && node dist/main",
     "generate": "prisma generate",
     "seed": "prisma db seed",
     "db:push": "prisma db push",
@@ -110,6 +110,6 @@
   },
   "prisma": {
     "schema": "./prisma",
-    "seed": "ts-node src/database/database.seed.ts"
+    "seed": "node dist/database/database.seed.js"
   }
 }
