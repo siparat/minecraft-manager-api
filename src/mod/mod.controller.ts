@@ -18,7 +18,7 @@ import {
 	UseGuards,
 	UsePipes
 } from '@nestjs/common';
-import { ModVersion, Prisma, UserRole } from 'generated/prisma';
+import { ModVersion, Prisma, User, UserRole } from 'generated/prisma';
 import { ZodValidationPipe } from 'nestjs-zod';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { RoleGuard } from 'src/user/guards/role.guard';
@@ -36,6 +36,7 @@ import { InjectBot } from 'nestjs-telegraf';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { ConfigService } from '@nestjs/config';
 import { Response } from 'express';
+import { UserInfo } from 'src/decorators/user-info.decorator';
 
 @Controller('mod')
 export class ModController {
@@ -79,22 +80,31 @@ export class ModController {
 	@UsePipes(ZodValidationPipe)
 	@UseGuards(JwtAuthGuard)
 	@Post()
-	async create(@Body() dto: CreateModDto): Promise<ModEntity> {
-		return this.modService.create(dto);
+	async create(@Body() dto: CreateModDto, @UserInfo() user: User): Promise<ModEntity> {
+		const mod = await this.modService.create(dto);
+		Logger.log(`[${user.username}] Новый мод ${mod.title} создан`);
+		return mod;
 	}
 
 	@UseGuards(JwtAuthGuard)
 	@UsePipes(ZodValidationPipe)
 	@Put(':id')
-	async update(@Param('id', ParseIntPipe) id: number, @Body() dto: UpdateModDto): Promise<ModEntity> {
-		return this.modService.update(id, dto);
+	async update(
+		@Param('id', ParseIntPipe) id: number,
+		@Body() dto: UpdateModDto,
+		@UserInfo() user: User
+	): Promise<ModEntity> {
+		const mod = await this.modService.update(id, dto);
+		Logger.log(`[${user.username}] Мод ${mod.title} изменён`);
+		return mod;
 	}
 
 	@UseGuards(JwtAuthGuard, new RoleGuard([UserRole.ADMIN]))
 	@UsePipes(ZodValidationPipe)
 	@Delete(':id')
-	async delete(@Param('id', ParseIntPipe) id: number): Promise<void> {
-		return this.modService.delete(id);
+	async delete(@Param('id', ParseIntPipe) id: number, @UserInfo() user: User): Promise<void> {
+		await this.modService.delete(id);
+		Logger.log(`[${user.username}] Удален мод с id - ${id}`);
 	}
 
 	@ApiTags('for-admin')

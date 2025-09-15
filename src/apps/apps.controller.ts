@@ -7,6 +7,7 @@ import {
 	Get,
 	HttpCode,
 	HttpStatus,
+	Logger,
 	NotFoundException,
 	Param,
 	ParseArrayPipe,
@@ -23,7 +24,7 @@ import {
 	UseInterceptors,
 	UsePipes
 } from '@nestjs/common';
-import { App, AppIssue, AppStatus, IssueStatus, Language, Prisma, UserRole } from 'generated/prisma';
+import { App, AppIssue, AppStatus, IssueStatus, Language, Prisma, User, UserRole } from 'generated/prisma';
 import { ZodValidationPipe } from 'nestjs-zod';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { RoleGuard } from 'src/user/guards/role.guard';
@@ -48,6 +49,7 @@ import { ModSearchResponse } from 'src/mod/interfaces/mod-search-response.interf
 import { ModSortKeys } from 'src/mod/interfaces/mod-sort.interface';
 import { ModRepository } from 'src/mod/repositories/mod.repository';
 import { ApiBody, ApiOperation, ApiParam, ApiQuery, ApiTags } from '@nestjs/swagger';
+import { UserInfo } from 'src/decorators/user-info.decorator';
 
 @Controller('apps')
 export class AppsController {
@@ -85,21 +87,31 @@ export class AppsController {
 	@UseGuards(JwtAuthGuard, new RoleGuard([UserRole.ADMIN]))
 	@UsePipes(ZodValidationPipe)
 	@Post()
-	async createApp(@Body() dto: CreateAppDto): Promise<AppEntity> {
-		return this.appsService.createApp(dto);
+	async createApp(@Body() dto: CreateAppDto, @UserInfo() user: User): Promise<AppEntity> {
+		const app = await this.appsService.createApp(dto);
+		Logger.log(`[${user.username}] Создано новое приложение ${app.id}`);
+		return app;
 	}
 
 	@UseGuards(JwtAuthGuard, new RoleGuard([UserRole.ADMIN]))
 	@UsePipes(ZodValidationPipe)
 	@Put(':id')
-	async updateApp(@Param('id', ParseIntPipe) id: number, @Body() dto: UpdateAppDto): Promise<AppEntity> {
-		return this.appsService.updateApp(id, dto);
+	async updateApp(
+		@Param('id', ParseIntPipe) id: number,
+		@Body() dto: UpdateAppDto,
+		@UserInfo() user: User
+	): Promise<AppEntity> {
+		const app = await this.appsService.updateApp(id, dto);
+		Logger.log(`[${user.username}] Приложение ${app.id} отредактировано`);
+		return app;
 	}
 
 	@UseGuards(JwtAuthGuard, new RoleGuard([UserRole.ADMIN]))
 	@Delete(':id')
-	async deleteApp(@Param('id', ParseIntPipe) appId: number): Promise<void> {
-		await this.appsService.deleteApp(appId);
+	async deleteApp(@Param('id', ParseIntPipe) appId: number, @UserInfo() user: User): Promise<void> {
+		const app = await this.appsService.deleteApp(appId);
+		Logger.log(`[${user.username}] Приложение с id ${appId} было удалено`);
+		return app;
 	}
 
 	@ApiParam({
@@ -120,7 +132,9 @@ export class AppsController {
 		@Body() { text, email }: CreateIssueDto,
 		@Param('id', ParseIntPipe) id: number
 	): Promise<AppIssueEntity> {
-		return this.appsService.createIssue(id, email, text);
+		const issue = this.appsService.createIssue(id, email, text);
+		Logger.log(`Претензия от пользователя ${email} создана`);
+		return issue;
 	}
 
 	@UseGuards(JwtAuthGuard)
@@ -152,9 +166,12 @@ export class AppsController {
 	@Post(':id/issue/:issueId/solve')
 	async solveAppIssue(
 		@Param('id', ParseIntPipe) appId: number,
-		@Param('issueId', ParseIntPipe) issueId: number
+		@Param('issueId', ParseIntPipe) issueId: number,
+		@UserInfo() user: User
 	): Promise<AppIssueEntity> {
-		return this.appsService.changeIssueStatus(appId, issueId, IssueStatus.SOLVED);
+		const issue = await this.appsService.changeIssueStatus(appId, issueId, IssueStatus.SOLVED);
+		Logger.log(`[${user.username}] Претензия с id ${issueId} была решена`);
+		return issue;
 	}
 
 	@ApiTags('for-builders')
@@ -247,9 +264,12 @@ export class AppsController {
 	@Post(':id/issue/:issueId/delete')
 	async deleteAppIssue(
 		@Param('id', ParseIntPipe) appId: number,
-		@Param('issueId', ParseIntPipe) issueId: number
+		@Param('issueId', ParseIntPipe) issueId: number,
+		@UserInfo() user: User
 	): Promise<AppIssueEntity> {
-		return this.appsService.changeIssueStatus(appId, issueId, IssueStatus.DELETED);
+		const issue = await this.appsService.changeIssueStatus(appId, issueId, IssueStatus.DELETED);
+		Logger.log(`[${user.username}] Претензия с id ${issueId} была удалена`);
+		return issue;
 	}
 
 	@UsePipes(ZodValidationPipe)
@@ -261,17 +281,22 @@ export class AppsController {
 
 	@UseGuards(JwtAuthGuard, new RoleGuard([UserRole.ADMIN]))
 	@Post(':id/sdk/ads/toggle')
-	async toggleViewAds(@Param('id', ParseIntPipe) appId: number): Promise<AppSdkEntity> {
-		return this.appsService.toggleViewAds(appId);
+	async toggleViewAds(@Param('id', ParseIntPipe) appId: number, @UserInfo() user: User): Promise<AppSdkEntity> {
+		const sdk = await this.appsService.toggleViewAds(appId);
+		Logger.log(`[${user.username}] Реклама приложения ${appId} была переключена`);
+		return sdk;
 	}
 
 	@UseGuards(JwtAuthGuard)
 	@Patch(':id/status/:status')
 	async setNewStatus(
 		@Param('id', ParseIntPipe) appId: number,
-		@Param('status', new ParseEnumPipe(AppStatus)) status: AppStatus
+		@Param('status', new ParseEnumPipe(AppStatus)) status: AppStatus,
+		@UserInfo() user: User
 	): Promise<AppEntity> {
-		return this.appsService.setNewStatus(appId, status);
+		const app = await this.appsService.setNewStatus(appId, status);
+		Logger.log(`[${user.username}] Статус приложения ${app.id} обновлён`);
+		return app;
 	}
 
 	@UseInterceptors(FileInterceptor('apk', { limits: { fileSize: 157286400 } }))
@@ -284,7 +309,8 @@ export class AppsController {
 			})
 		)
 		file: Express.Multer.File,
-		@Param('id', ParseIntPipe) appId: number
+		@Param('id', ParseIntPipe) appId: number,
+		@UserInfo() user: User
 	): Promise<AppEntity> {
 		const app = await this.appsRepository.findById(appId);
 		if (!app) {
@@ -297,6 +323,7 @@ export class AppsController {
 		}
 		const appEntity = new AppEntity({ ...app, apk: uploadedFile.url });
 		await this.appsRepository.update(appId, appEntity);
+		Logger.log(`[${user.username}] Загружен apk ${uploadedFile.filename} приложению ${app.id}`);
 		return appEntity;
 	}
 
@@ -310,7 +337,8 @@ export class AppsController {
 			})
 		)
 		file: Express.Multer.File,
-		@Param('id', ParseIntPipe) appId: number
+		@Param('id', ParseIntPipe) appId: number,
+		@UserInfo() user: User
 	): Promise<AppEntity> {
 		const app = await this.appsRepository.findById(appId);
 		if (!app) {
@@ -323,6 +351,7 @@ export class AppsController {
 		}
 		const appEntity = new AppEntity({ ...app, bundle: uploadedFile.url });
 		await this.appsRepository.update(appId, appEntity);
+		Logger.log(`[${user.username}] Загружен bundle ${uploadedFile.filename} приложению ${app.id}`);
 		return appEntity;
 	}
 
@@ -332,7 +361,8 @@ export class AppsController {
 	async uploadScreenshots(
 		@UploadedFiles()
 		files: Express.Multer.File[],
-		@Param('id', ParseIntPipe) appId: number
+		@Param('id', ParseIntPipe) appId: number,
+		@UserInfo() user: User
 	): Promise<AppEntity> {
 		const filesIncludesOnlyImage = !files.some((f) => !f.mimetype.includes('image'));
 		if (!filesIncludesOnlyImage) {
@@ -358,6 +388,8 @@ export class AppsController {
 
 			await this.fileService.deleteFile(filename);
 		}
+
+		Logger.log(`[${user.username}] Загружено ${result.length} скриншотов приложению ${app.id}`);
 
 		return appEntity;
 	}

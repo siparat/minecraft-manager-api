@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, Req, UnauthorizedException, UseGuards, UsePipes } from '@nestjs/common';
+import { Body, Controller, Get, Logger, Post, Req, UnauthorizedException, UseGuards, UsePipes } from '@nestjs/common';
 import { UserService } from './user.service';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { RoleGuard } from './guards/role.guard';
@@ -34,6 +34,8 @@ export class UserController {
 	@UsePipes(ZodValidationPipe)
 	@Post('builder')
 	async createBuilderAccount(@Body() dto: CreateBuilderAccountDto): Promise<UserEntity> {
-		return this.userService.createBuilderAccount(dto);
+		const user = await this.userService.createBuilderAccount(dto);
+		Logger.log(`Создан сборщик с именем ${user.username}`);
+		return user;
 	}
 }
