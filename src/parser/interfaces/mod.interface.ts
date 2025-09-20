@@ -1,3 +1,5 @@
+import { ModCategory } from 'generated/prisma';
+
 export interface ParsedModShort {
 	slug: string;
 	publishedAt?: Date;
@@ -12,6 +14,9 @@ export interface ParsedMod {
 	slug: string;
 	description: string;
 	descriptionHtml: string;
+	category: ModCategory;
+	rating: number;
+	commentCounts: number;
 	descriptionImages: string[];
 	downloads: Download[];
 	image: string;

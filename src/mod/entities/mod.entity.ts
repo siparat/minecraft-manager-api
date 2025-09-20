@@ -1,14 +1,17 @@
-import { ModTranslation, ModVersion } from 'generated/prisma';
+import { ModCategory, ModTranslation, ModVersion } from 'generated/prisma';
 import { IModEntity } from '../interfaces/mod-entity.interface';
 import { ModTranslationEntity } from './mod-translation.entity';
 
 export class ModEntity implements IModEntity {
 	id?: number;
 	parsedSlug?: string;
+	category: ModCategory;
 	htmlDescription?: string;
 	createdAt?: Date;
 	updatedAt?: Date;
 	isParsed?: boolean;
+	commentCounts?: number;
+	rating?: number;
 	descriptionImages: string[];
 	title: string;
 	description: string;
@@ -22,6 +25,9 @@ export class ModEntity implements IModEntity {
 		this.createdAt = mod.createdAt;
 		this.updatedAt = mod.updatedAt;
 		this.title = mod.title;
+		this.category = mod.category;
+		this.commentCounts = mod.commentCounts ?? undefined;
+		this.rating = mod.rating ?? undefined;
 		this.description = mod.description;
 		this.image = mod.image;
 		this.files = mod.files;

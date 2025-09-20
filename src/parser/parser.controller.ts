@@ -1,4 +1,4 @@
-import { Controller, Post, UseGuards } from '@nestjs/common';
+import { Controller, HttpCode, HttpStatus, Post, UseGuards } from '@nestjs/common';
 import { ParserGateway } from './parser.gateway';
 import { ParserService } from './parser.service';
 import { ModRepository } from 'src/mod/repositories/mod.repository';
@@ -16,6 +16,7 @@ export class ParserController {
 		private modRepository: ModRepository
 	) {}
 
+	@HttpCode(HttpStatus.OK)
 	@UseGuards(JwtAuthGuard, new RoleGuard([UserRole.ADMIN]))
 	@Post()
 	@Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)

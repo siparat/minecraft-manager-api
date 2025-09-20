@@ -4,6 +4,9 @@ model Mod {
     createdAt         DateTime         @default(now())
     updatedAt         DateTime         @updatedAt
     isParsed          Boolean?         @default(false)
+    category          ModCategory
+    rating            Float?
+    commentCounts     Int?
     descriptionImages String[]         @default([])
     title             String
     description       String
@@ -29,4 +32,11 @@ model ModTranslation {
     description String
 
     @@unique([modId, languageId])
+}
+
+enum ModCategory {
+    ADDON
+    WORLD
+    TEXTURE_PACK
+    SKIN_PACK
 }

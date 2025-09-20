@@ -16,7 +16,7 @@ export class ParserGateway {
 
 	async getModSearchPage(page: number): Promise<DOMWindow | null> {
 		try {
-			const url = new URL(`category/mods/page/${page}`, this.host);
+			const url = new URL(`page/${page}`, this.host);
 			const window = await this.fetchPage(url);
 			if (window.document.title.includes('undefined')) {
 				return null;

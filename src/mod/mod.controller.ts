@@ -113,13 +113,13 @@ export class ModController {
 	@UseGuards(JwtAuthGuard)
 	@Post('check-deprecated-mods')
 	@Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
-	async detectDeprecatedMods(@Res() res: Response): Promise<void> {
+	async detectDeprecatedMods(@Res() res?: Response): Promise<void> {
 		const adminId = this.config.get('ADMIN_CHAT_ID');
 		if (!adminId) {
-			res.sendStatus(HttpStatus.BAD_REQUEST);
+			res?.sendStatus(HttpStatus.BAD_REQUEST);
 			Logger.error('Администратор не найден, невозможно отправить список неактуальных модов');
 		}
-		res.sendStatus(HttpStatus.OK);
+		res?.sendStatus(HttpStatus.OK);
 		const deprecatedMods = await this.modService.searchDeprecatedMods();
 		if (!deprecatedMods.length) {
 			return;

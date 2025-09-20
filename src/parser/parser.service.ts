@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { JSDOM, DOMWindow, VirtualConsole } from 'jsdom';
 import { Download, ParsedMod, ParsedModShort } from './interfaces/mod.interface';
+import { parseCategory } from './utils/parse-category.util';
 
 @Injectable()
 export class ParserService {
@@ -21,6 +22,13 @@ export class ParserService {
 			return null;
 		}
 
+		const categories: { slug: string }[] = window.__NUXT__?.state?.slug?.model.categories;
+		const category = parseCategory(categories);
+		if (!category) {
+			Logger.error(`Мод ${slug} не имеет необходимую категорию`);
+			return null;
+		}
+
 		const image = window.__NUXT__?.state?.slug?.model?.image;
 		if (!image) {
 			Logger.error(`Лого у мода ${title} отсутствует`);
@@ -33,6 +41,14 @@ export class ParserService {
 			return null;
 		}
 		const filteredDownloads = Array.from(new Map(downloads.map((d) => [d.file, d])).values());
+
+		if (filteredDownloads.some(({ file }) => file.startsWith('/leaving'))) {
+			Logger.error(`Мод ${slug} введет на другой сайт`);
+			return null;
+		}
+
+		const commentCounts = window.__NUXT__?.state?.slug?.model?.comments_total || 0;
+		const rating = Number(Number(window.__NUXT__?.state?.slug?.model?.comments_rating?.average).toFixed(2));
 
 		const versions = window.__NUXT__?.state?.slug?.model?.minecraft_versions.map(({ name }) => name) || [];
 
@@ -49,7 +65,10 @@ export class ParserService {
 		return {
 			versions,
 			title,
+			category,
 			slug,
+			commentCounts,
+			rating,
 			description,
 			descriptionHtml,
 			descriptionImages,
