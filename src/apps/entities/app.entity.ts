@@ -11,7 +11,7 @@ export class AppEntity implements IAppEntity {
 	bundle?: string;
 	packageName: string;
 	logo: string;
-	banner: string;
+	banner?: string;
 	translations: AppTranslationEntity[];
 	appScreenshots: string[];
 
@@ -24,7 +24,7 @@ export class AppEntity implements IAppEntity {
 		this.logo = app.logo;
 		this.apk = app.apk || undefined;
 		this.bundle = app.bundle || undefined;
-		this.banner = app.banner;
+		this.banner = app.banner || undefined;
 		this.translations = [];
 	}
 

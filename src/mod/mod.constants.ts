@@ -7,5 +7,7 @@ export const ModErrorMessages = {
 
 export const ModSorts: Record<ModSort['key'], (sort: Prisma.SortOrder) => Prisma.ModOrderByWithRelationInput> = {
 	name: (sort: Prisma.SortOrder) => ({ title: sort }),
-	usedCount: (sort: Prisma.SortOrder) => ({ apps: { _count: sort } })
+	usedCount: (sort: Prisma.SortOrder) => ({ apps: { _count: sort } }),
+	rating: (sort: Prisma.SortOrder) => ({ rating: { sort, nulls: 'last' } }),
+	commentCounts: (sort: Prisma.SortOrder) => ({ commentCounts: { sort, nulls: 'last' } })
 };

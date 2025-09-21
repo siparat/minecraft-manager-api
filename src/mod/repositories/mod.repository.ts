@@ -7,6 +7,8 @@ import { ModSearchResponse } from '../interfaces/mod-search-response.interface';
 import { ModSort } from '../interfaces/mod-sort.interface';
 import { ModSorts } from '../mod.constants';
 import { ModTranslationEntity } from '../entities/mod-translation.entity';
+import { FilterItem } from 'src/common/types/filter-operations';
+import { ModCategory } from 'minecraft-manager-schemas';
 
 @Injectable()
 export class ModRepository {
@@ -17,11 +19,17 @@ export class ModRepository {
 		skip: number,
 		q?: string,
 		versions?: string[],
+		category?: ModCategory,
+		ratingFilter?: FilterItem<number>,
+		commentsCountFilter?: FilterItem<number>,
 		sort?: ModSort
 	): Promise<ModSearchResponse> {
 		const where = {
+			category,
 			versions: versions ? { some: { version: { in: versions } } } : undefined,
-			title: { contains: q, mode: Prisma.QueryMode.insensitive }
+			title: { contains: q, mode: Prisma.QueryMode.insensitive },
+			commentCounts: commentsCountFilter ? { [commentsCountFilter.operator]: commentsCountFilter.value } : undefined,
+			rating: ratingFilter ? { [ratingFilter.operator]: ratingFilter.value } : undefined
 		};
 		const mods = await this.database.mod.findMany({
 			where,
@@ -41,12 +49,18 @@ export class ModRepository {
 		skip: number,
 		q?: string,
 		versions?: string[],
+		category?: ModCategory,
+		ratingFilter?: FilterItem<number>,
+		commentsCountFilter?: FilterItem<number>,
 		sort?: ModSort
 	): Promise<ModSearchResponse> {
 		const where = {
+			category,
 			versions: versions ? { some: { version: { in: versions } } } : undefined,
 			title: { contains: q, mode: Prisma.QueryMode.insensitive },
-			apps: isActive ? { some: { id: appId } } : { none: { id: appId } }
+			apps: isActive ? { some: { id: appId } } : { none: { id: appId } },
+			commentCounts: commentsCountFilter ? { [commentsCountFilter.operator]: commentsCountFilter.value } : undefined,
+			rating: ratingFilter ? { [ratingFilter.operator]: ratingFilter.value } : undefined
 		};
 		const mods = await this.database.mod.findMany({
 			where,

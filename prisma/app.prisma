@@ -5,7 +5,7 @@ model App {
     packageName    String           @unique
     status         AppStatus        @default(PLANNED)
     logo           String
-    banner         String
+    banner         String?
     apk            String?
     bundle         String?
     appScreenshots String[]         @default([])

@@ -13,6 +13,7 @@ import {
 	ParseArrayPipe,
 	ParseEnumPipe,
 	ParseFilePipe,
+	ParseFloatPipe,
 	ParseIntPipe,
 	Patch,
 	Post,
@@ -50,6 +51,8 @@ import { ModSortKeys } from 'src/mod/interfaces/mod-sort.interface';
 import { ModRepository } from 'src/mod/repositories/mod.repository';
 import { ApiBody, ApiOperation, ApiParam, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { UserInfo } from 'src/decorators/user-info.decorator';
+import { ModCategory } from 'minecraft-manager-schemas';
+import { FilterOperation } from 'src/common/types/filter-operations';
 
 @Controller('apps')
 export class AppsController {
@@ -237,7 +240,13 @@ export class AppsController {
 		@Query('q') q?: string,
 		@Query('sort_key', new ParseEnumPipe(ModSortKeys, { optional: true })) sortKey?: (typeof ModSortKeys)[number],
 		@Query('sort_value', new ParseEnumPipe(Prisma.SortOrder, { optional: true })) sortValue?: Prisma.SortOrder,
-		@Query('versions', new ParseArrayPipe({ optional: true, separator: '+' })) versions?: string[]
+		@Query('versions', new ParseArrayPipe({ optional: true, separator: '+' })) versions?: string[],
+		@Query('category', new ParseEnumPipe(ModCategory, { optional: true })) category?: ModCategory,
+		@Query('rating', new ParseFloatPipe({ optional: true })) rating?: number,
+		@Query('commentsCount', new ParseIntPipe({ optional: true })) commentsCount?: number,
+		@Query('ratingOperator', new ParseEnumPipe(FilterOperation, { optional: true })) ratingOperator?: FilterOperation,
+		@Query('commentsCountOperator', new ParseEnumPipe(FilterOperation, { optional: true }))
+		commentsCountOperator?: FilterOperation
 	): Promise<ModSearchResponse> {
 		const app = await this.appsRepository.findById(appId);
 		if (!app) {
@@ -247,7 +256,21 @@ export class AppsController {
 		const sort = sortKey && sortValue ? { key: sortKey, value: sortValue } : undefined;
 		take = Math.max(0, take);
 		skip = Math.max(0, skip);
-		return this.modRepository.searchModsFromApp(appId, searchIsActived, take, skip, q, versions, sort);
+		const ratingFilter = rating && ratingOperator ? { operator: ratingOperator, value: rating } : undefined;
+		const commentsCountFilter =
+			commentsCount && commentsCountOperator ? { operator: commentsCountOperator, value: commentsCount } : undefined;
+		return this.modRepository.searchModsFromApp(
+			appId,
+			searchIsActived,
+			take,
+			skip,
+			q,
+			versions,
+			category,
+			ratingFilter,
+			commentsCountFilter,
+			sort
+		);
 	}
 
 	@HttpCode(HttpStatus.OK)

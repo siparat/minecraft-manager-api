@@ -10,6 +10,7 @@ import {
 	Param,
 	ParseArrayPipe,
 	ParseEnumPipe,
+	ParseFloatPipe,
 	ParseIntPipe,
 	Post,
 	Put,
@@ -37,6 +38,8 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import { ConfigService } from '@nestjs/config';
 import { Response } from 'express';
 import { UserInfo } from 'src/decorators/user-info.decorator';
+import { FilterOperation } from 'src/common/types/filter-operations';
+import { ModCategory } from 'minecraft-manager-schemas';
 
 @Controller('mod')
 export class ModController {
@@ -54,12 +57,21 @@ export class ModController {
 		@Query('q') q?: string,
 		@Query('sort_key', new ParseEnumPipe(ModSortKeys, { optional: true })) sortKey?: (typeof ModSortKeys)[number],
 		@Query('sort_value', new ParseEnumPipe(Prisma.SortOrder, { optional: true })) sortValue?: Prisma.SortOrder,
-		@Query('versions', new ParseArrayPipe({ optional: true, separator: '+' })) versions?: string[]
+		@Query('versions', new ParseArrayPipe({ optional: true, separator: '+' })) versions?: string[],
+		@Query('category', new ParseEnumPipe(ModCategory, { optional: true })) category?: ModCategory,
+		@Query('rating', new ParseFloatPipe({ optional: true })) rating?: number,
+		@Query('commentsCount', new ParseIntPipe({ optional: true })) commentsCount?: number,
+		@Query('ratingOperator', new ParseEnumPipe(FilterOperation, { optional: true })) ratingOperator?: FilterOperation,
+		@Query('commentsCountOperator', new ParseEnumPipe(FilterOperation, { optional: true }))
+		commentsCountOperator?: FilterOperation
 	): Promise<ModSearchResponse> {
 		const sort = sortKey && sortValue ? { key: sortKey, value: sortValue } : undefined;
+		const ratingFilter = rating && ratingOperator ? { operator: ratingOperator, value: rating } : undefined;
+		const commentsCountFilter =
+			commentsCount && commentsCountOperator ? { operator: commentsCountOperator, value: commentsCount } : undefined;
 		take = Math.max(0, take);
 		skip = Math.max(0, skip);
-		return this.modRepository.search(take, skip, q, versions, sort);
+		return this.modRepository.search(take, skip, q, versions, category, ratingFilter, commentsCountFilter, sort);
 	}
 
 	@Get('versions')

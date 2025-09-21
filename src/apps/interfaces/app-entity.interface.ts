@@ -3,5 +3,5 @@ import { PartialFields } from 'src/common/types/partial-fields';
 
 export type IAppEntity = PartialFields<
 	App,
-	'id' | 'appScreenshots' | 'createdAt' | 'status' | 'updatedAt' | 'apk' | 'bundle'
+	'id' | 'appScreenshots' | 'createdAt' | 'status' | 'updatedAt' | 'apk' | 'bundle' | 'banner'
 >;
