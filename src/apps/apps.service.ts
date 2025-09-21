@@ -1,6 +1,7 @@
 import {
 	BadRequestException,
 	ConflictException,
+	HttpException,
 	Injectable,
 	NotFoundException,
 	UnprocessableEntityException
@@ -22,6 +23,9 @@ import { AppSdkRepository } from './repositories/app-sdk.repository';
 import { ModRepository } from 'src/mod/repositories/mod.repository';
 import { ModErrorMessages } from 'src/mod/mod.constants';
 import { ModService } from 'src/mod/mod.service';
+import { InjectBot } from 'nestjs-telegraf';
+import { Telegraf } from 'telegraf';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class AppsService {
@@ -31,7 +35,9 @@ export class AppsService {
 		private appIssueRepository: AppIssueRepository,
 		private appSdkRepository: AppSdkRepository,
 		private modRepository: ModRepository,
-		private modService: ModService
+		private modService: ModService,
+		private config: ConfigService,
+		@InjectBot() private bot: Telegraf
 	) {}
 
 	async createApp({ translations, ...otherDto }: CreateAppDto): Promise<AppEntity> {
@@ -181,7 +187,14 @@ export class AppsService {
 
 		const updatedApp = await this.appsRepository.toggleModFromApp(appId, modId);
 		if (!mod.translations.length) {
-			await this.modService.translateDescription(modId);
+			try {
+				await this.modService.translateDescription(modId);
+			} catch (error) {
+				if (error instanceof HttpException) {
+					const adminId = this.config.get('ADMIN_CHAT_ID');
+					await this.bot.telegram.sendMessage(adminId, `Ошибка при переводе мода ${mod.title}: ${error.message}`);
+				}
+			}
 		}
 		return new AppEntity(updatedApp);
 	}
