@@ -231,6 +231,33 @@ export class AppsController {
 		required: false,
 		description: 'Фильтр по версиям, несколько через `+`'
 	})
+	@ApiQuery({ name: 'category', enum: ModCategory, required: false })
+	@ApiQuery({
+		name: 'rating',
+		type: Number,
+		required: false,
+		description: 'Выборка по рейтингу',
+		example: 4.5
+	})
+	@ApiQuery({
+		name: 'ratingOperator',
+		enum: FilterOperation,
+		required: false,
+		description: 'EQUALS - равен; LT - меньше; LTE - меньше или равен; GT - больше; GTE - больше или равен; '
+	})
+	@ApiQuery({
+		name: 'commentsCount',
+		type: Number,
+		required: false,
+		description: 'Выборка по количествам комментариев',
+		example: 10
+	})
+	@ApiQuery({
+		name: 'commentsCountOperator',
+		enum: FilterOperation,
+		required: false,
+		description: 'EQUALS - равен; LT - меньше; LTE - меньше или равен; GT - больше; GTE - больше или равен; '
+	})
 	@Get(':appId/mod/:status')
 	async searchModsFromApp(
 		@Param('appId', ParseIntPipe) appId: number,

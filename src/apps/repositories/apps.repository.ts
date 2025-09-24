@@ -4,18 +4,27 @@ import { DatabaseService } from 'src/database/database.service';
 import { AppEntity } from '../entities/app.entity';
 import { AppFullInfo, AppWithTranslations } from '../interfaces/app.interface';
 import { AppTranslationEntity } from '../entities/app-translation.entity';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class AppsRepository {
-	constructor(private database: DatabaseService) {}
+	constructor(
+		private database: DatabaseService,
+		private config: ConfigService
+	) {}
 
 	async create(appEntity: AppEntity): Promise<App> {
+		const token = this.config.get('DEFAULT_APP_LOVIN_TOKEN');
 		try {
 			return await this.database.app.create({
 				data: {
 					...appEntity,
 					translations: { createMany: { data: appEntity.translations } },
-					sdk: { create: {} }
+					sdk: {
+						create: {
+							appLovinToken: token || undefined
+						}
+					}
 				}
 			});
 		} catch (error) {
