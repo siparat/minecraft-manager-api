@@ -47,6 +47,7 @@ export class ModRepository {
 		isActive: boolean,
 		take: number,
 		skip: number,
+		language?: string,
 		q?: string,
 		versions?: string[],
 		category?: ModCategory,
@@ -67,6 +68,7 @@ export class ModRepository {
 			take,
 			skip,
 			include: {
+				translations: language ? { where: { language: { code: language } } } : true,
 				versions: true,
 				_count: { select: { apps: true } },
 				apps: { select: { id: true }, where: { id: appId } }

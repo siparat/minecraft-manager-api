@@ -5,6 +5,7 @@ import {
 	Delete,
 	FileTypeValidator,
 	Get,
+	Headers,
 	HttpCode,
 	HttpStatus,
 	Logger,
@@ -49,7 +50,7 @@ import { AndroidBundleValidator } from './validators/android-bundle.validator';
 import { ModSearchResponse } from 'src/mod/interfaces/mod-search-response.interface';
 import { ModSortKeys } from 'src/mod/interfaces/mod-sort.interface';
 import { ModRepository } from 'src/mod/repositories/mod.repository';
-import { ApiBody, ApiOperation, ApiParam, ApiQuery, ApiTags } from '@nestjs/swagger';
+import { ApiBody, ApiHeader, ApiOperation, ApiParam, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { UserInfo } from 'src/decorators/user-info.decorator';
 import { ModCategory } from 'minecraft-manager-schemas';
 import { FilterOperation } from 'src/common/types/filter-operations';
@@ -258,6 +259,11 @@ export class AppsController {
 		required: false,
 		description: 'EQUALS - равен; LT - меньше; LTE - меньше или равен; GT - больше; GTE - больше или равен; '
 	})
+	@ApiHeader({
+		name: 'Language',
+		required: false,
+		description: 'Код языка'
+	})
 	@Get(':appId/mod/:status')
 	async searchModsFromApp(
 		@Param('appId', ParseIntPipe) appId: number,
@@ -273,7 +279,8 @@ export class AppsController {
 		@Query('commentsCount', new ParseIntPipe({ optional: true })) commentsCount?: number,
 		@Query('ratingOperator', new ParseEnumPipe(FilterOperation, { optional: true })) ratingOperator?: FilterOperation,
 		@Query('commentsCountOperator', new ParseEnumPipe(FilterOperation, { optional: true }))
-		commentsCountOperator?: FilterOperation
+		commentsCountOperator?: FilterOperation,
+		@Headers('Language') language?: string
 	): Promise<ModSearchResponse> {
 		const app = await this.appsRepository.findById(appId);
 		if (!app) {
@@ -291,6 +298,7 @@ export class AppsController {
 			searchIsActived,
 			take,
 			skip,
+			language,
 			q,
 			versions,
 			category,
