@@ -6,7 +6,6 @@ import {
 	HttpCode,
 	HttpStatus,
 	Logger,
-	NotFoundException,
 	Param,
 	ParseArrayPipe,
 	ParseEnumPipe,
@@ -28,7 +27,6 @@ import { ModService } from './mod.service';
 import { CreateModDto } from './dto/create-mod.dto';
 import { UpdateModDto } from './dto/update-mod.dto';
 import { ModRepository } from './repositories/mod.repository';
-import { ModErrorMessages } from './mod.constants';
 import { ModSearchResponse } from './interfaces/mod-search-response.interface';
 import { ModSortKeys } from './interfaces/mod-sort.interface';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
@@ -82,11 +80,7 @@ export class ModController {
 	@ApiTags('for-builders')
 	@Get(':id')
 	async getById(@Param('id', ParseIntPipe) id: number): Promise<ModEntity> {
-		const mod = await this.modRepository.findById(id);
-		if (!mod) {
-			throw new NotFoundException(ModErrorMessages.NOT_FOUND);
-		}
-		return new ModEntity(mod).setVersions(mod.versions).setTranslations(mod.translations);
+		return this.modService.findById(id);
 	}
 
 	@UsePipes(ZodValidationPipe)

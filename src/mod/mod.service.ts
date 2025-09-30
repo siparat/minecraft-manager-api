@@ -8,14 +8,36 @@ import { ModTranslationEntity } from './entities/mod-translation.entity';
 import { DeeplGateway } from 'src/integrations/deepl/deepl.gateway';
 import { ConfigService } from '@nestjs/config';
 import { Mod } from 'generated/prisma';
+import { ParserService } from 'src/parser/parser.service';
 
 @Injectable()
 export class ModService {
 	constructor(
 		private modRepository: ModRepository,
 		private deeplGateway: DeeplGateway,
+		private parser: ParserService,
 		private config: ConfigService
 	) {}
+
+	async findById(id: number): Promise<ModEntity> {
+		const mod = await this.modRepository.findById(id);
+		if (!mod) {
+			throw new NotFoundException(ModErrorMessages.NOT_FOUND);
+		}
+		const findedModEntity = new ModEntity(mod).setVersions(mod.versions).setTranslations(mod.translations);
+		if (!mod.parsedSlug || !mod.files[0]?.startsWith('https://api.mcpedl.com')) {
+			return findedModEntity;
+		}
+
+		const newLinks = await this.parser.getRelevantLinks(mod.parsedSlug);
+		if (!newLinks || !newLinks.length) {
+			return findedModEntity;
+		}
+
+		const entity = new ModEntity({ ...mod, files: newLinks.map(({ file }) => file) });
+		this.modRepository.update(mod.id, entity);
+		return entity.setVersions(mod.versions).setTranslations(mod.translations);
+	}
 
 	async create(dto: CreateModDto, isParsed: boolean = false): Promise<ModEntity> {
 		const modEntity = new ModEntity({ ...dto, isParsed }).setVersions(dto.versions.map((version) => ({ version })));

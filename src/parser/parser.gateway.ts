@@ -1,16 +1,12 @@
 import { HttpException, Injectable, Logger } from '@nestjs/common';
-import { ParserService } from './parser.service';
 import { ConfigService } from '@nestjs/config';
-import { DOMWindow } from 'jsdom';
+import { DOMWindow, JSDOM, VirtualConsole } from 'jsdom';
 
 @Injectable()
 export class ParserGateway {
 	private host: string;
 
-	constructor(
-		config: ConfigService,
-		private parserService: ParserService
-	) {
+	constructor(config: ConfigService) {
 		this.host = config.getOrThrow('HOST_MODS_API');
 	}
 
@@ -49,6 +45,6 @@ export class ParserGateway {
 		}
 
 		const htmlString = await res.text();
-		return this.parserService.createDOM(htmlString);
+		return new JSDOM(htmlString, { runScripts: 'dangerously', virtualConsole: new VirtualConsole() }).window;
 	}
 }

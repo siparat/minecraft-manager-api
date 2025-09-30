@@ -1,18 +1,37 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { JSDOM, DOMWindow, VirtualConsole } from 'jsdom';
+import { DOMWindow } from 'jsdom';
 import { Download, ParsedMod, ParsedModShort } from './interfaces/mod.interface';
 import { parseCategory } from './utils/parse-category.util';
+import { ParserGateway } from './parser.gateway';
 
 @Injectable()
 export class ParserService {
-	createDOM(htmlString: string): DOMWindow {
-		return new JSDOM(htmlString, { runScripts: 'dangerously', virtualConsole: new VirtualConsole() }).window;
-	}
+	constructor(private parserGateway: ParserGateway) {}
 
 	parseModsFromSearchPage({ document }: DOMWindow): ParsedModShort[] {
 		const cards = document.querySelectorAll('.fancybox.post');
 		const mods = Array.from(cards).map(this.handleModCard);
 		return mods.filter((m) => !!m);
+	}
+
+	async getRelevantLinks(slug: string): Promise<ParsedMod['downloads'] | null> {
+		const page = await this.parserGateway.getModPage(slug);
+		if (!page) {
+			return null;
+		}
+
+		const downloads: Download[] = page.__NUXT__?.state?.slug?.model?.downloads;
+		if (!downloads || !downloads.length) {
+			return null;
+		}
+
+		const filteredDownloads = Array.from(new Map(downloads.map((d) => [d.file, d])).values());
+
+		if (filteredDownloads.some(({ file }) => file.startsWith('/leaving'))) {
+			return null;
+		}
+
+		return filteredDownloads;
 	}
 
 	async parseMod(slug: string, window: DOMWindow): Promise<ParsedMod | null> {
