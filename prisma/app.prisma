@@ -69,6 +69,8 @@ model AppTranslation {
 enum AppStatus {
     PLANNED
     IN_PROGRESS
+	IN_MODERATION
+	IN_CORRECTION
     PUBLISHED
 }
 
