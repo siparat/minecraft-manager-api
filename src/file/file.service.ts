@@ -18,10 +18,10 @@ export class FileService {
 	}
 
 	async uploadImage(image: Express.Multer.File): Promise<UploadedFileResponse> {
-		const filename = randomUUID() + '.webp';
+		const filename = randomUUID() + '.png';
 		const pathToUploadedFile = join(this.rootDir, filename);
 
-		await sharp(image.buffer).webp({ quality: 80 }).toFile(pathToUploadedFile);
+		await sharp(image.buffer).png({ quality: 80 }).toFile(pathToUploadedFile);
 		return { filename, url: join('/', this.uploadsRootDir, filename) };
 	}
 

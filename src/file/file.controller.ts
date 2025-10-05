@@ -23,7 +23,7 @@ export class FileController {
 	constructor(private fileService: FileService) {}
 
 	@UsePipes(ZodValidationPipe)
-	@UseInterceptors(FileInterceptor('image', { limits: { fileSize: 1536000 } }))
+	@UseInterceptors(FileInterceptor('image', { limits: { fileSize: 5242880 } }))
 	@UseGuards(JwtAuthGuard)
 	@Post('image')
 	async uploadImage(
