@@ -413,7 +413,7 @@ export class AppsController {
 		return appEntity;
 	}
 
-	@UseInterceptors(FilesInterceptor('screenshot', undefined, { limits: { fileSize: 1536000 } }))
+	@UseInterceptors(FilesInterceptor('screenshot', undefined, { limits: { fileSize: 5242880 } }))
 	@UseGuards(JwtAuthGuard)
 	@Post(':id/screenshots')
 	async uploadScreenshots(

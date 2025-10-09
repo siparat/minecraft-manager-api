@@ -3,6 +3,7 @@ import {
 	ConflictException,
 	HttpException,
 	Injectable,
+	Logger,
 	NotFoundException,
 	UnprocessableEntityException
 } from '@nestjs/common';
@@ -193,6 +194,7 @@ export class AppsService {
 				if (error instanceof HttpException) {
 					const adminId = this.config.get('ADMIN_CHAT_ID');
 					await this.bot.telegram.sendMessage(adminId, `Ошибка при переводе мода ${mod.title}: ${error.message}`);
+					Logger.error(error);
 				}
 			}
 		}
