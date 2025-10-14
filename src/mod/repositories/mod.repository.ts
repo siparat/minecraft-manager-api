@@ -173,6 +173,13 @@ export class ModRepository {
 		});
 	}
 
+	async findBySlug(slug: string): Promise<Mod | null> {
+		return this.database.mod.findUnique({
+			where: { parsedSlug: slug },
+			include: { versions: true, translations: true, _count: { select: { apps: true } } }
+		});
+	}
+
 	async delete(id: number): Promise<Mod> {
 		try {
 			return await this.database.mod.delete({ where: { id } });

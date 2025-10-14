@@ -7,6 +7,7 @@ import { Logger } from '@nestjs/common';
 import { ModRepository } from 'src/mod/repositories/mod.repository';
 import { ParsedModShort } from 'src/parser/interfaces/mod.interface';
 import { ModEntity } from 'src/mod/entities/mod.entity';
+import { Mod } from 'generated/prisma';
 
 export class ParserSaga {
 	private page: number;
@@ -68,9 +69,6 @@ export class ParserSaga {
 			}
 
 			for (const { slug } of shortMods) {
-				if (allSlugs.includes(slug)) {
-					continue;
-				}
 				const modPage = await this.parserGateway.getModPage(slug);
 				if (!modPage) {
 					continue;
@@ -88,6 +86,12 @@ export class ParserSaga {
 					isParsed: true
 				});
 				entity.setVersions(mod.versions.map((version) => ({ version })));
+				if (allSlugs.includes(slug)) {
+					const { id } = (await this.modRepository.findBySlug(slug)) as Mod;
+					await this.modRepository.update(id, entity);
+					Logger.log(`Мод ${slug} был обновлен`);
+					continue;
+				}
 				await this.modRepository.create(entity);
 				Logger.log(`Мод ${slug} был добавлен`);
 			}

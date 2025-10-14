@@ -80,8 +80,10 @@ export class ParserService {
 		const description = (divDescription.textContent || '').trim().replace(/\n{2,}/g, '\n');
 
 		const descriptionImages = window.__NUXT__?.state?.slug?.model?.submission_images || [];
+		const updatedAt = new Date(window.__NUXT__?.state?.slug?.model?.updated_at || Date.now());
 
 		return {
+			updatedAt,
 			versions,
 			title,
 			category,

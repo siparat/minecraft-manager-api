@@ -11,6 +11,7 @@ export interface ParsedModShort {
 }
 
 export interface ParsedMod {
+	updatedAt: Date;
 	slug: string;
 	description: string;
 	descriptionHtml: string;
