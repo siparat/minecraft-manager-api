@@ -54,6 +54,7 @@ import { ApiBody, ApiHeader, ApiOperation, ApiParam, ApiQuery, ApiTags } from '@
 import { UserInfo } from 'src/decorators/user-info.decorator';
 import { ModCategory } from 'minecraft-manager-schemas';
 import { FilterOperation } from 'src/common/types/filter-operations';
+import { SetOrderDto } from './dto/set-order.dto';
 
 @Controller('apps')
 export class AppsController {
@@ -71,10 +72,9 @@ export class AppsController {
 		return this.languageRepository.getAllLanguages();
 	}
 
-	@UseGuards(JwtAuthGuard)
 	@Get()
-	async getAllApps(): Promise<App[]> {
-		return this.appsRepository.getAll();
+	async getAllApps(@Headers('Lanugage') lanugageCode?: string): Promise<App[]> {
+		return this.appsRepository.getAll(lanugageCode);
 	}
 
 	@ApiTags('for-builders')
@@ -309,6 +309,14 @@ export class AppsController {
 	}
 
 	@HttpCode(HttpStatus.OK)
+	@UseGuards(JwtAuthGuard, new RoleGuard([UserRole.ADMIN]))
+	@UsePipes(ZodValidationPipe)
+	@Post('order/set')
+	async setOrder(@Body() { order }: SetOrderDto): Promise<void> {
+		await this.appsRepository.setOrder(order);
+	}
+
+	@HttpCode(HttpStatus.OK)
 	@UseGuards(JwtAuthGuard)
 	@Post(':appId/mod/:modId/toggle')
 	async toggleMod(
@@ -382,6 +390,30 @@ export class AppsController {
 		const appEntity = new AppEntity({ ...app, apk: uploadedFile.url });
 		await this.appsRepository.update(appId, appEntity);
 		Logger.log(`[${user.username}] Загружен apk ${uploadedFile.filename} приложению ${app.id}`);
+		return appEntity;
+	}
+
+	@UseInterceptors(FileInterceptor('firebase', { limits: { fileSize: 1048576 } }))
+	@UseGuards(JwtAuthGuard)
+	@Post(':id/firebase')
+	async uploadFirebase(
+		@UploadedFile()
+		file: Express.Multer.File,
+		@Param('id', ParseIntPipe) appId: number,
+		@UserInfo() user: User
+	): Promise<AppEntity> {
+		const app = await this.appsRepository.findById(appId);
+		if (!app) {
+			throw new NotFoundException(AppsErrorMessages.NOT_FOUND);
+		}
+		const uploadedFile = await this.fileService.saveFile(file);
+		if (app.firebaseFile) {
+			const filename = app.firebaseFile.split('/').pop();
+			filename && (await this.fileService.deleteFile(filename));
+		}
+		const appEntity = new AppEntity({ ...app, firebaseFile: uploadedFile.url });
+		await this.appsRepository.update(appId, appEntity);
+		Logger.log(`[${user.username}] Загружен firebaseID ${uploadedFile.filename} приложению ${app.id}`);
 		return appEntity;
 	}
 

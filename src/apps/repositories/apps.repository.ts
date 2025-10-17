@@ -33,13 +33,28 @@ export class AppsRepository {
 		}
 	}
 
-	getAll(): Promise<AppWithTranslations[]> {
+	async setOrder(order: number[]): Promise<void> {
+		try {
+			for (const index in order) {
+				await this.database.app.update({ where: { id: order[index] }, data: { order: Number(index) || undefined } });
+			}
+		} catch (error) {
+			Logger.error(error);
+			throw new InternalServerErrorException('Произошла непредвиденная ошибка при установке порядка приложений');
+		}
+	}
+
+	getAll(lanugageCode?: string): Promise<AppWithTranslations[]> {
 		return this.database.app.findMany({
 			include: {
-				translations: { select: { name: true, language: true }, take: 1 },
+				translations: {
+					where: lanugageCode ? { language: { code: lanugageCode } } : undefined,
+					select: { name: true, language: true },
+					take: 1
+				},
 				_count: { select: { mods: true } }
 			},
-			orderBy: { createdAt: 'desc' }
+			orderBy: { order: 'asc' }
 		});
 	}
 

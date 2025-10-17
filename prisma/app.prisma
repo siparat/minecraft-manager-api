@@ -1,10 +1,12 @@
 model App {
     id             Int              @id @default(autoincrement())
+    order          Int              @default(0)
     createdAt      DateTime         @default(now())
     updatedAt      DateTime         @updatedAt
     packageName    String           @unique
     status         AppStatus        @default(PLANNED)
     logo           String
+    firebaseFile   String?
     banner         String?
     apk            String?
     bundle         String?
@@ -69,8 +71,8 @@ model AppTranslation {
 enum AppStatus {
     PLANNED
     IN_PROGRESS
-	IN_MODERATION
-	IN_CORRECTION
+    IN_MODERATION
+    IN_CORRECTION
     PUBLISHED
 }
 
