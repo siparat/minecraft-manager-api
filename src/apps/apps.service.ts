@@ -116,6 +116,20 @@ export class AppsService {
 
 		const entity = new AppIssueEntity({ appId, email, text });
 		const issue = await this.appIssueRepository.createIssue(entity);
+
+		const adminId = this.config.get('ADMIN_CHAT_ID');
+		const hostApp = this.config.get('HOST_APP');
+		if (adminId && hostApp) {
+			const urlToIssue = hostApp + `/app/${appId}/issues`;
+			const message = `Пришла новая [жалоба](${urlToIssue}) на приложение *${app.translations[0].name}* (*${app.packageName}*)\n\n*Текст жалобы:*\n${text}`;
+
+			try {
+				await this.bot.telegram.sendMessage(adminId, message, { parse_mode: 'Markdown' });
+			} catch (error) {
+				Logger.error(error);
+			}
+		}
+
 		return new AppIssueEntity(issue);
 	}
 
