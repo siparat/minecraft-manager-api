@@ -15,7 +15,7 @@ model Mod {
     image             String
     files             String[]
     versions          ModVersion[]
-    apps              App[]
+    apps              AppMod[]
 }
 
 model ModVersion {

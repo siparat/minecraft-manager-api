@@ -317,6 +317,18 @@ export class AppsController {
 	}
 
 	@HttpCode(HttpStatus.OK)
+	@UseGuards(JwtAuthGuard, new RoleGuard([UserRole.ADMIN]))
+	@UsePipes(ZodValidationPipe)
+	@Post(':appId/mod/order/set')
+	async setModsOrder(@Body() { order }: SetOrderDto, @Param('appId', ParseIntPipe) appId: number): Promise<void> {
+		const app = await this.appsRepository.findById(appId);
+		if (!app) {
+			throw new NotFoundException(AppsErrorMessages.NOT_FOUND);
+		}
+		await this.appsRepository.setModsOrder(appId, order);
+	}
+
+	@HttpCode(HttpStatus.OK)
 	@UseGuards(JwtAuthGuard)
 	@Post(':appId/mod/:modId/toggle')
 	async toggleMod(

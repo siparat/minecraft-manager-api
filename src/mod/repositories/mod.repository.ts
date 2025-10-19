@@ -56,27 +56,36 @@ export class ModRepository {
 		sort?: ModSort
 	): Promise<ModSearchResponse> {
 		const where = {
-			category,
-			versions: versions ? { some: { version: { in: versions } } } : undefined,
-			title: { contains: q, mode: Prisma.QueryMode.insensitive },
-			apps: isActive ? { some: { id: appId } } : { none: { id: appId } },
-			commentCounts: commentsCountFilter ? { [commentsCountFilter.operator]: commentsCountFilter.value } : undefined,
-			rating: ratingFilter ? { [ratingFilter.operator]: ratingFilter.value } : undefined
+			appId: isActive ? appId : { not: appId },
+			mod: {
+				category,
+				versions: versions ? { some: { version: { in: versions } } } : undefined,
+				title: { contains: q, mode: Prisma.QueryMode.insensitive },
+				commentCounts: commentsCountFilter ? { [commentsCountFilter.operator]: commentsCountFilter.value } : undefined,
+				rating: ratingFilter ? { [ratingFilter.operator]: ratingFilter.value } : undefined
+			}
 		};
-		const mods = await this.database.mod.findMany({
-			where,
-			take,
-			skip,
-			include: {
-				translations: language ? { where: { language: { code: language } } } : true,
-				versions: true,
-				_count: { select: { apps: true } },
-				apps: { select: { id: true }, where: { id: appId } }
-			},
-			orderBy: sort ? ModSorts[sort.key](sort.value) : undefined
-		});
-		const count = await this.database.mod.count({ where });
-		return { count, mods };
+
+		const mods = (
+			await this.database.appMod.findMany({
+				where,
+				take,
+				skip,
+				select: {
+					mod: {
+						include: {
+							translations: language ? { where: { language: { code: language } } } : true,
+							versions: true,
+							_count: { select: { apps: true } },
+							apps: { select: { appId: true }, where: { appId } }
+						}
+					}
+				},
+				orderBy: sort ? ModSorts[sort.key](sort.value) : undefined
+			})
+		).map(({ mod }) => mod);
+		const count = await this.database.appMod.count({ where });
+		return { count, mods: mods.map((m) => ({ ...m, apps: m.apps.map(({ appId }) => ({ id: appId })) })) };
 	}
 
 	count(): Promise<number> {
@@ -95,8 +104,10 @@ export class ModRepository {
 		{
 			id: number;
 			mods: {
-				parsedSlug: string | null;
-				title: string;
+				mod: {
+					parsedSlug: string | null;
+					title: string;
+				};
 			}[];
 			packageName: string;
 		}[]
@@ -105,7 +116,10 @@ export class ModRepository {
 			select: {
 				id: true,
 				packageName: true,
-				mods: { where: { isParsed: true, parsedSlug: { not: null } }, select: { parsedSlug: true, title: true } }
+				mods: {
+					where: { mod: { isParsed: true, parsedSlug: { not: null } } },
+					select: { mod: { select: { parsedSlug: true, title: true } } }
+				}
 			}
 		});
 	}

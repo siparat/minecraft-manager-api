@@ -97,7 +97,7 @@ export class ModService {
 		const result: (Pick<Mod, 'parsedSlug' | 'title'> & { url: string; packageName: string })[] = [];
 
 		for (const app of apps) {
-			for (const mod of app.mods) {
+			for (const { mod } of app.mods) {
 				if (!mod.parsedSlug) continue;
 
 				const url = new URL(mod.parsedSlug, host);

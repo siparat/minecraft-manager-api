@@ -36,11 +36,27 @@ export class AppsRepository {
 	async setOrder(order: number[]): Promise<void> {
 		try {
 			for (const index in order) {
-				await this.database.app.update({ where: { id: order[index] }, data: { order: Number(index) || undefined } });
+				await this.database.app.update({ where: { id: order[index] }, data: { order: Number(index) } });
 			}
 		} catch (error) {
 			Logger.error(error);
 			throw new InternalServerErrorException('Произошла непредвиденная ошибка при установке порядка приложений');
+		}
+	}
+
+	async setModsOrder(appId: number, order: number[]): Promise<void> {
+		try {
+			for (const index in order) {
+				await this.database.appMod.updateMany({
+					where: { appId, modId: order[index] },
+					data: { order: Number(index) }
+				});
+			}
+		} catch (error) {
+			Logger.error(error);
+			throw new InternalServerErrorException(
+				'Произошла непредвиденная ошибка при установке порядка модов в приложении'
+			);
 		}
 	}
 
@@ -79,11 +95,13 @@ export class AppsRepository {
 	async toggleModFromApp(appId: number, modId: number): Promise<App> {
 		try {
 			const modIsConnected =
-				(await this.database.mod.findFirst({ where: { id: modId, apps: { some: { id: appId } } } })) !== null;
+				(await this.database.mod.findFirst({ where: { id: modId, apps: { some: { appId } } } })) !== null;
 			return this.database.app.update({
 				where: { id: appId },
 				include: { _count: { select: { mods: true } } },
-				data: { mods: modIsConnected ? { disconnect: { id: modId } } : { connect: { id: modId } } }
+				data: {
+					mods: modIsConnected ? { deleteMany: { modId, appId } } : { create: { modId } }
+				}
 			});
 		} catch (error) {
 			Logger.error(error);
