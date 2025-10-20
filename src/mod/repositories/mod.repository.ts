@@ -36,7 +36,7 @@ export class ModRepository {
 			take,
 			skip,
 			include: { versions: true, _count: { select: { apps: true } } },
-			orderBy: sort ? ModSorts[sort.key](sort.value) : { createdAt: 'desc' }
+			orderBy: sort ? ModSorts[sort.key](sort.value).mod : { createdAt: 'desc' }
 		});
 		const count = await this.database.mod.count({ where });
 		return { count, mods };
