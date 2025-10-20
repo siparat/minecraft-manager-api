@@ -7,7 +7,7 @@ import { Logger } from '@nestjs/common';
 import { ModRepository } from 'src/mod/repositories/mod.repository';
 import { ParsedModShort } from 'src/parser/interfaces/mod.interface';
 import { ModEntity } from 'src/mod/entities/mod.entity';
-import { Mod } from 'generated/prisma';
+import { ModWithVersions } from 'src/mod/interfaces/mod.interface';
 
 export class ParserSaga {
 	private page: number;
@@ -87,8 +87,9 @@ export class ParserSaga {
 				});
 				entity.setVersions(mod.versions.map((version) => ({ version })));
 				if (allSlugs.includes(slug)) {
-					const { id } = (await this.modRepository.findBySlug(slug)) as Mod;
-					await this.modRepository.update(id, entity);
+					const mod = (await this.modRepository.findBySlug(slug)) as ModWithVersions;
+					entity.setVersions(entity.versions.concat(mod.versions));
+					await this.modRepository.update(mod.id, entity);
 					Logger.log(`Мод ${slug} был обновлен`);
 					continue;
 				}
