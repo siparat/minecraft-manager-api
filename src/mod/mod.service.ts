@@ -74,7 +74,7 @@ export class ModService {
 			throw new NotFoundException(ModErrorMessages.NOT_FOUND);
 		}
 
-		const languages = await this.modRepository.getAllLanguages();
+		const languages = (await this.modRepository.getAllLanguages()).filter(({ code }) => ['en', 'ru'].includes(code));
 
 		const translations: ModTranslationEntity[] = [];
 		for (const language of languages) {

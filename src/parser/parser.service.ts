@@ -110,7 +110,7 @@ export class ParserService {
 		const rating = card.querySelector('.fancybox__header__rating')?.textContent?.trim();
 		const image = card.querySelector<HTMLImageElement>('.post__img__static img')?.src;
 		if (!slug || !title || !image) {
-			console.error('Невозможно собрать данные мода');
+			Logger.error('Невозможно собрать данные мода');
 			return null;
 		}
 		return {

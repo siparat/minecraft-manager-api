@@ -35,11 +35,11 @@ export class ModRepository {
 			where,
 			take,
 			skip,
-			include: { versions: true, _count: { select: { apps: true } } },
+			include: { versions: true, _count: { select: { apps: true } }, apps: { select: { appId: true } } },
 			orderBy: sort ? ModSorts[sort.key](sort.value).mod : { createdAt: 'desc' }
 		});
 		const count = await this.database.mod.count({ where });
-		return { count, mods };
+		return { count, mods: mods.map((m) => ({ ...m, apps: m.apps.map(({ appId }) => ({ id: appId })) })) };
 	}
 
 	async searchModsFromApp(
