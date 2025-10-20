@@ -164,13 +164,16 @@ export class ModRepository {
 				where: { id },
 				data: {
 					...modEntity,
-					versions: {
-						set: [],
-						connectOrCreate: modEntity.versions.map(({ version }) => ({
-							where: { version },
-							create: { version }
-						}))
-					}
+					versions:
+						modEntity.versions && modEntity.versions.length
+							? {
+									set: [],
+									connectOrCreate: modEntity.versions.map(({ version }) => ({
+										where: { version },
+										create: { version }
+									}))
+								}
+							: undefined
 				},
 				include: { versions: true, _count: { select: { apps: true } } }
 			});
