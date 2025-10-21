@@ -293,6 +293,9 @@ export class AppsController {
 		const ratingFilter = rating && ratingOperator ? { operator: ratingOperator, value: rating } : undefined;
 		const commentsCountFilter =
 			commentsCount && commentsCountOperator ? { operator: commentsCountOperator, value: commentsCount } : undefined;
+		if (language !== 'ru') {
+			language = 'en';
+		}
 		return this.modRepository.searchModsFromApp(
 			appId,
 			searchIsActived,

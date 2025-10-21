@@ -34,7 +34,7 @@ export class ModService {
 			return findedModEntity;
 		}
 
-		const entity = new ModEntity({ ...mod, files: newLinks.map(({ file }) => file) });
+		const entity = new ModEntity({ ...mod, files: newLinks.map(({ file }) => file) }).setTranslations(mod.translations);
 		this.modRepository.update(mod.id, entity);
 		return entity.setVersions(mod.versions).setTranslations(mod.translations);
 	}
