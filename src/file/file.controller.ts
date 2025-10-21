@@ -41,7 +41,7 @@ export class FileController {
 		return result;
 	}
 
-	@UseInterceptors(FilesInterceptor('modfile', undefined, { limits: { fileSize: 52428800 } }))
+	@UseInterceptors(FilesInterceptor('modfile', undefined, { limits: { fileSize: 157286400 } }))
 	@UseGuards(JwtAuthGuard)
 	@Post('modfile')
 	async uploadMod(
