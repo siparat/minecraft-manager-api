@@ -12,6 +12,7 @@ import { ParserModule } from './parser/parser.module';
 import { InjectBot, TelegrafModule } from 'nestjs-telegraf';
 import { getTelegrafConfig } from './configs/telegraf.config';
 import { Telegraf } from 'telegraf';
+import { PolicyModule } from './policy/policy.module';
 
 @Module({
 	imports: [
@@ -23,6 +24,7 @@ import { Telegraf } from 'telegraf';
 		ModModule,
 		ParserModule,
 		DeeplModule,
+		PolicyModule,
 		ServeStaticModule.forRoot({
 			rootPath: `${join(path, 'uploads')}`,
 			serveRoot: '/uploads',
