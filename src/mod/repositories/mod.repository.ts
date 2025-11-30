@@ -76,6 +76,7 @@ export class ModRepository {
 					skip,
 					select: {
 						mod: {
+							omit: { htmlDescription: true },
 							include: {
 								translations: language ? { where: { language: { code: language } } } : true,
 								versions: true,
@@ -88,7 +89,10 @@ export class ModRepository {
 				})
 			).map(({ mod }) => mod);
 			const count = await this.database.appMod.count({ where });
-			return { count, mods: mods.map((m) => ({ ...m, apps: m.apps.map(({ appId }) => ({ id: appId })) })) };
+			return {
+				count,
+				mods: mods.map((m) => ({ ...m, apps: m.apps.map(({ appId }) => ({ id: appId })) })) as unknown as Mod[]
+			};
 		}
 		const where: Prisma.ModWhereInput = {
 			category,
@@ -103,6 +107,7 @@ export class ModRepository {
 			where,
 			take,
 			skip,
+			omit: { htmlDescription: true },
 			include: {
 				translations: language ? { where: { language: { code: language } } } : true,
 				versions: true,
@@ -119,7 +124,7 @@ export class ModRepository {
 			mods: mods.map((m) => ({
 				...m,
 				apps: m.apps.map(({ appId }) => ({ id: appId }))
-			}))
+			})) as unknown as Mod[]
 		};
 	}
 
@@ -218,11 +223,18 @@ export class ModRepository {
 		}
 	}
 
-	async findById(id: number): Promise<ModWithVersions | null> {
-		return this.database.mod.findUnique({
+	async findById(id: number, languageCode?: string): Promise<ModWithVersions | null> {
+		return (await this.database.mod.findUnique({
 			where: { id },
-			include: { versions: true, translations: true, _count: { select: { apps: true } } }
-		});
+			omit: { htmlDescription: true },
+			include: {
+				versions: true,
+				translations: {
+					where: { language: { code: languageCode } }
+				},
+				_count: { select: { apps: true } }
+			}
+		})) as unknown as ModWithVersions;
 	}
 
 	async findBySlug(slug: string): Promise<ModWithVersions | null> {

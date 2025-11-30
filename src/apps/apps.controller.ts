@@ -55,6 +55,7 @@ import { UserInfo } from 'src/decorators/user-info.decorator';
 import { ModCategory } from 'minecraft-manager-schemas';
 import { FilterOperation } from 'src/common/types/filter-operations';
 import { SetOrderDto } from './dto/set-order.dto';
+import { ModEntity } from 'src/mod/entities/mod.entity';
 
 @Controller('apps')
 export class AppsController {
@@ -73,7 +74,7 @@ export class AppsController {
 	}
 
 	@Get()
-	async getAllApps(@Headers('Lanugage') lanugageCode?: string): Promise<App[]> {
+	async getAllApps(@Headers('Language') lanugageCode?: string): Promise<App[]> {
 		return this.appsRepository.getAll(lanugageCode);
 	}
 
@@ -296,7 +297,7 @@ export class AppsController {
 		if (language !== 'ru') {
 			language = 'en';
 		}
-		return this.modRepository.searchModsFromApp(
+		const appMods = await this.modRepository.searchModsFromApp(
 			appId,
 			searchIsActived,
 			take,
@@ -309,6 +310,16 @@ export class AppsController {
 			commentsCountFilter,
 			sort
 		);
+
+		appMods.mods = appMods.mods.map((m) => {
+			const description = (m as ModEntity).translations[0]?.description;
+			if (language && description) {
+				m.description = description;
+			}
+			(m as ModEntity).translations = [];
+			return m;
+		});
+		return appMods;
 	}
 
 	@HttpCode(HttpStatus.OK)

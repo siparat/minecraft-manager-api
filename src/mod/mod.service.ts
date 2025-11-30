@@ -19,8 +19,8 @@ export class ModService {
 		private config: ConfigService
 	) {}
 
-	async findById(id: number): Promise<ModEntity> {
-		const mod = await this.modRepository.findById(id);
+	async findById(id: number, languageCode?: string): Promise<ModEntity> {
+		const mod = await this.modRepository.findById(id, languageCode);
 		if (!mod) {
 			throw new NotFoundException(ModErrorMessages.NOT_FOUND);
 		}

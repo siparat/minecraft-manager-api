@@ -3,6 +3,7 @@ import {
 	Controller,
 	Delete,
 	Get,
+	Headers,
 	HttpCode,
 	HttpStatus,
 	Logger,
@@ -79,8 +80,14 @@ export class ModController {
 
 	@ApiTags('for-builders')
 	@Get(':id')
-	async getById(@Param('id', ParseIntPipe) id: number): Promise<ModEntity> {
-		return this.modService.findById(id);
+	async getById(@Param('id', ParseIntPipe) id: number, @Headers('Language') languageCode?: string): Promise<ModEntity> {
+		const mod = await this.modService.findById(id, languageCode);
+		const description = mod.translations[0]?.description;
+		if (languageCode && description) {
+			mod.description = description;
+		}
+		mod.translations = [];
+		return mod;
 	}
 
 	@UsePipes(ZodValidationPipe)
