@@ -7,8 +7,8 @@ import { Policy } from 'generated/prisma';
 export class PolicyRepository {
 	constructor(private database: DatabaseService) {}
 
-	async getAllPolicies(): Promise<Policy[]> {
-		return this.database.policy.findMany();
+	async getAllPolicies(): Promise<Omit<Policy, 'content'>[]> {
+		return this.database.policy.findMany({ omit: { content: true } });
 	}
 
 	async findBySlug(slug: string): Promise<Policy | null> {

@@ -24,7 +24,7 @@ export class PolicyController {
 	@Get()
 	async getAllPolicies(): Promise<PolicyEntity[]> {
 		const allPolicies = await this.policyRepository.getAllPolicies();
-		return allPolicies.map(PolicyEntity.createFromModel);
+		return allPolicies.map((p) => PolicyEntity.createFromModel({ ...p, content: '' }));
 	}
 
 	@Get(':slug')
