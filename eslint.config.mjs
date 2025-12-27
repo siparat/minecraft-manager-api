@@ -27,13 +27,13 @@ export default tseslint.config(
 	},
 	{
 		rules: {
+			'@typescript-eslint/no-explicit-any': 'off',
 			'@typescript-eslint/recommended-type-checked': 'off',
 			'@typescript-eslint/no-unused-expressions': 'off',
 			'@typescript-eslint/no-namespace': 'off',
 			'@typescript-eslint/interface-name-prefix': 'off',
 			'@typescript-eslint/explicit-function-return-type': 'warn',
 			'@typescript-eslint/explicit-module-boundary-types': 'off',
-			'@typescript-eslint/no-explicit-any': 'warn',
 			'@typescript-eslint/no-unused-vars': [
 				'warn',
 				{

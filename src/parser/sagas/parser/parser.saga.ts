@@ -42,11 +42,9 @@ export class ParserSaga {
 
 	async processSearchPage(pageNumber: number): Promise<ParsedModShort[] | null> {
 		try {
-			const page = await this.parserGateway.getModSearchPage(pageNumber);
-			if (!page) {
-				return null;
-			}
-			return this.parserService.parseModsFromSearchPage(page);
+			const html = await this.parserGateway.getModSearchPage(pageNumber);
+			if (!html) return null;
+			return this.parserService.parseModsFromSearchPage(html);
 		} catch (error) {
 			this.setState(ParserStatus.STOPPED);
 			Logger.error(error);
@@ -69,14 +67,11 @@ export class ParserSaga {
 			}
 
 			for (const { slug } of shortMods) {
-				const modPage = await this.parserGateway.getModPage(slug);
-				if (!modPage) {
-					continue;
-				}
-				const mod = await this.parserService.parseMod(slug, modPage);
-				if (!mod) {
-					continue;
-				}
+				const pageData = await this.parserGateway.getModPage(slug);
+				if (!pageData) continue;
+
+				const mod = await this.parserService.parseMod(slug, pageData.nuxtState);
+				if (!mod) continue;
 
 				const entity = new ModEntity({
 					...mod,

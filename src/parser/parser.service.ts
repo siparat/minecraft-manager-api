@@ -1,17 +1,18 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { DOMWindow } from 'jsdom';
 import { Download, ParsedMod, ParsedModShort } from './interfaces/mod.interface';
 import { parseCategory } from './utils/parse-category.util';
 import { ParserGateway } from './parser.gateway';
+import { JSDOM } from 'jsdom';
 
 @Injectable()
 export class ParserService {
 	constructor(private parserGateway: ParserGateway) {}
 
-	parseModsFromSearchPage({ document }: DOMWindow): ParsedModShort[] {
-		const cards = document.querySelectorAll('.fancybox.post');
+	parseModsFromSearchPage(html: string): ParsedModShort[] {
+		const { window } = new JSDOM(html);
+		const cards = window.document.querySelectorAll('.fancybox.post');
 		const mods = Array.from(cards).map(this.handleModCard);
-		return mods.filter((m) => !!m);
+		return mods.filter(Boolean) as ParsedModShort[];
 	}
 
 	async getRelevantLinks(slug: string): Promise<ParsedMod['downloads'] | null> {
@@ -20,7 +21,7 @@ export class ParserService {
 			return null;
 		}
 
-		const downloads: Download[] = page.__NUXT__?.state?.slug?.model?.downloads;
+		const downloads: Download[] = page.nuxtState?.state?.slug?.model?.downloads;
 		if (!downloads || !downloads.length) {
 			return null;
 		}
@@ -34,67 +35,39 @@ export class ParserService {
 		return filteredDownloads;
 	}
 
-	async parseMod(slug: string, window: DOMWindow): Promise<ParsedMod | null> {
-		const title: string | undefined = window.__NUXT__?.state?.slug?.model?.title;
-		if (!title) {
-			Logger.error(`Мод ${slug} не найден`);
-			return null;
-		}
+	async parseMod(slug: string, nuxt: any): Promise<ParsedMod | null> {
+		const model = nuxt?.state?.slug?.model;
+		if (!model?.title) return null;
 
-		const categories: { slug: string }[] = window.__NUXT__?.state?.slug?.model.categories;
-		const category = parseCategory(categories);
-		if (!category) {
-			Logger.error(`Мод ${slug} не имеет необходимую категорию`);
-			return null;
-		}
+		const category = parseCategory(model.categories || []);
+		if (!category) return null;
 
-		const image = window.__NUXT__?.state?.slug?.model?.image;
-		if (!image) {
-			Logger.error(`Лого у мода ${title} отсутствует`);
-			return null;
-		}
-
-		const downloads: Download[] = window.__NUXT__?.state?.slug?.model?.downloads;
-		if (!downloads || !downloads.length) {
-			Logger.error(`Файлы у мода ${title} отсутствуют`);
-			return null;
-		}
+		const downloads: Download[] = model.downloads || [];
 		const filteredDownloads = Array.from(new Map(downloads.map((d) => [d.file, d])).values());
 
-		if (filteredDownloads.some(({ file }) => file.startsWith('/leaving'))) {
-			Logger.error(`Мод ${slug} введет на другой сайт`);
+		if (filteredDownloads.some((d) => d.file.startsWith('/leaving'))) {
 			return null;
 		}
 
-		const commentCounts = window.__NUXT__?.state?.slug?.model?.comments_total || 0;
-		const rating = Number(Number(window.__NUXT__?.state?.slug?.model?.comments_rating?.average).toFixed(2));
-
-		const versions = window.__NUXT__?.state?.slug?.model?.minecraft_versions.map(({ name }) => name) || [];
-
-		const descriptionHtml = (window.__NUXT__?.state?.slug?.model?.description || '').trim();
-		if (!descriptionHtml) {
-			Logger.error(`Описание у мода ${title} пустое`);
-		}
-		const divDescription = window.document.createElement('div');
-		divDescription.innerHTML = descriptionHtml;
-		const description = (divDescription.textContent || '').trim().replace(/\n{2,}/g, '\n');
-
-		const descriptionImages = window.__NUXT__?.state?.slug?.model?.submission_images || [];
-		const updatedAt = new Date(window.__NUXT__?.state?.slug?.model?.updated_at || Date.now());
+		const descriptionHtml = (model.description || '').trim();
+		const description = descriptionHtml
+			.replace(/<[^>]+>/g, '')
+			.replace(/\n{2,}/g, '\n')
+			.trim();
 
 		return {
-			updatedAt,
-			versions,
-			title,
-			category,
 			slug,
-			commentCounts,
-			rating,
+			title: model.title,
+			image: model.image,
+			category,
+			downloads: filteredDownloads,
 			description,
 			descriptionHtml,
-			descriptionImages,
-			downloads: filteredDownloads,
-			image
+			descriptionImages: model.submission_images || [],
+			commentCounts: model.comments_total || 0,
+			rating: Number(Number(model.comments_rating?.average || 0).toFixed(2)),
+			versions: model.minecraft_versions?.map((v) => v.name) || [],
+			updatedAt: new Date(model.updated_at)
 		};
 	}
 
