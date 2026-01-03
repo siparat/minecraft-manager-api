@@ -1,5 +1,5 @@
 import { Injectable, InternalServerErrorException, Logger } from '@nestjs/common';
-import { App, AppTranslation } from 'generated/prisma';
+import { App, AppTranslation, Mod } from 'generated/prisma';
 import { DatabaseService } from 'src/database/database.service';
 import { AppEntity } from '../entities/app.entity';
 import { AppFullInfo, AppWithTranslations } from '../interfaces/app.interface';
@@ -153,5 +153,23 @@ export class AppsRepository {
 			Logger.error(error);
 			throw new InternalServerErrorException('Произошла непредвиденная ошибка при удалении приложения');
 		}
+	}
+
+	async getRandomModFromApp(appId: number): Promise<Mod | null> {
+		const modCounts = await this.database.mod.count({
+			where: { apps: { some: { appId } } }
+		});
+
+		if (modCounts === 0) {
+			return null;
+		}
+
+		const skip = Math.floor(Math.random() * modCounts);
+
+		return this.database.mod.findFirst({
+			where: { apps: { some: { appId } } },
+			orderBy: { id: 'asc' },
+			skip
+		});
 	}
 }

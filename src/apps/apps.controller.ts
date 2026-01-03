@@ -26,7 +26,7 @@ import {
 	UseInterceptors,
 	UsePipes
 } from '@nestjs/common';
-import { App, AppIssue, AppStatus, IssueStatus, Language, Prisma, User, UserRole } from 'generated/prisma';
+import { App, AppIssue, AppStatus, IssueStatus, Language, Mod, Prisma, User, UserRole } from 'generated/prisma';
 import { ZodValidationPipe } from 'nestjs-zod';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { RoleGuard } from 'src/user/guards/role.guard';
@@ -177,6 +177,15 @@ export class AppsController {
 		const issue = await this.appsService.changeIssueStatus(appId, issueId, IssueStatus.SOLVED);
 		Logger.log(`[${user.username}] Претензия с id ${issueId} была решена`);
 		return issue;
+	}
+
+	@Get(':appId/mod/random')
+	async getRandomMod(@Param('appId', ParseIntPipe) appId: number): Promise<Mod> {
+		const mod = await this.appsRepository.getRandomModFromApp(appId);
+		if (!mod) {
+			throw new NotFoundException(AppsErrorMessages.APP_DOES_NOT_CONTAIN_MODS);
+		}
+		return mod;
 	}
 
 	@ApiTags('for-builders')
