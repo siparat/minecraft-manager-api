@@ -27,6 +27,7 @@ import { ModService } from 'src/mod/mod.service';
 import { InjectBot } from 'nestjs-telegraf';
 import { Telegraf } from 'telegraf';
 import { ConfigService } from '@nestjs/config';
+import { RecommendModDto } from './dto/recommend-mod.dto';
 
 @Injectable()
 export class AppsService {
@@ -131,6 +132,22 @@ export class AppsService {
 		}
 
 		return new AppIssueEntity(issue);
+	}
+
+	async recommendMod(appId: number, dto: RecommendModDto): Promise<void> {
+		const app = await this.appsRepository.findById(appId);
+		if (!app) {
+			throw new NotFoundException(AppsErrorMessages.NOT_FOUND);
+		}
+
+		const adminId = this.config.get('ADMIN_CHAT_ID');
+		const message = `Пользователь приложения *${app.translations[0].name}* предложил мод:\n\n*Почта пользователя:* ${dto.email}\n*Ссылка на мод:* ${dto.url}\n*Описание:* ${dto.description}`;
+
+		try {
+			await this.bot.telegram.sendMessage(adminId, message, { parse_mode: 'Markdown' });
+		} catch (error) {
+			Logger.error(error);
+		}
 	}
 
 	async changeIssueStatus(appId: number, issueId: number, newStatus: IssueStatus): Promise<AppIssueEntity> {

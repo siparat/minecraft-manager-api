@@ -56,6 +56,7 @@ import { ModCategory } from 'minecraft-manager-schemas';
 import { FilterOperation } from 'src/common/types/filter-operations';
 import { SetOrderDto } from './dto/set-order.dto';
 import { ModEntity } from 'src/mod/entities/mod.entity';
+import { RecommendModDto } from './dto/recommend-mod.dto';
 
 @Controller('apps')
 export class AppsController {
@@ -177,6 +178,36 @@ export class AppsController {
 		const issue = await this.appsService.changeIssueStatus(appId, issueId, IssueStatus.SOLVED);
 		Logger.log(`[${user.username}] Претензия с id ${issueId} была решена`);
 		return issue;
+	}
+
+	@ApiTags('for-builders')
+	@ApiBody({
+		required: true,
+		examples: {
+			'Рекомендация мода': {
+				value: {
+					email: 'a@b.ru',
+					url: 'https://minecraft-inside.ru/mods/9093-portal-gun-mod.html',
+					description: 'Классный мод'
+				}
+			}
+		}
+	})
+	@ApiOperation({
+		summary: 'Рекомендовать мод',
+		description: 'Позволяет рекомендовать мод с отправкой формы в тг'
+	})
+	@ApiParam({
+		name: 'appId',
+		type: Number,
+		description: 'ID приложения',
+		example: 2
+	})
+	@HttpCode(HttpStatus.OK)
+	@UsePipes(ZodValidationPipe)
+	@Post(':appId/mod/recommend')
+	async recommendMod(@Param('appId', ParseIntPipe) appId: number, @Body() dto: RecommendModDto): Promise<void> {
+		await this.appsService.recommendMod(appId, dto);
 	}
 
 	@Get(':appId/mod/random')
