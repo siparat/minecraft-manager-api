@@ -2,6 +2,8 @@ import { Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { chromium, Browser, Page } from 'playwright';
 import { BrowserPageData } from './interfaces/parser.interface';
+import { Server } from './interfaces/servers.interface';
+import { JSDOM } from 'jsdom';
 
 @Injectable()
 export class ParserGateway implements OnModuleDestroy {
@@ -92,6 +94,37 @@ export class ParserGateway implements OnModuleDestroy {
 		} finally {
 			await page.close();
 		}
+	}
+
+	async parseServers(): Promise<Server[]> {
+		const servers: Map<string, Server> = new Map();
+		const browser = await this.createPage();
+
+		for (let page = 1; page <= 5; page++) {
+			const url = new URL(`bedrock/${page}`, 'https://minecraft.buzz').toString();
+			await browser.goto(url, { waitUntil: 'domcontentloaded', timeout: 10_000 });
+			const html = await browser.content();
+			const { window } = new JSDOM(html);
+			Array.from(window.document.querySelectorAll('tr[typeof="GameServer"]')).forEach((s) => {
+				const ip = s.querySelector('data')?.textContent;
+				if (!ip) {
+					return;
+				}
+
+				const [online, limitOnline] = s.querySelector('td:nth-child(5)')!.textContent.trim().split('/').map(Number);
+
+				servers.set(ip, {
+					ip,
+					title: s.querySelector('h3')!.textContent,
+					logo: s.querySelector('img')!.src,
+					online,
+					limitOnline,
+					versions: s.querySelector('span[title="Server Version"]')?.textContent.trim() || 'unknown'
+				});
+			});
+		}
+		await browser.close();
+		return Array.from(servers.values());
 	}
 
 	async onModuleDestroy(): Promise<void> {

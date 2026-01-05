@@ -13,9 +13,14 @@ import { InjectBot, TelegrafModule } from 'nestjs-telegraf';
 import { getTelegrafConfig } from './configs/telegraf.config';
 import { Telegraf } from 'telegraf';
 import { PolicyModule } from './policy/policy.module';
+import { CacheModule } from '@nestjs/cache-manager';
+import { getCacheConfig } from './configs/cache.config';
+import { AppController } from './app.controller';
 
 @Module({
+	controllers: [AppController],
 	imports: [
+		CacheModule.registerAsync(getCacheConfig()),
 		TelegrafModule.forRootAsync(getTelegrafConfig()),
 		ConfigModule.forRoot({ isGlobal: true }),
 		AuthModule,
