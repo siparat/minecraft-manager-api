@@ -4,6 +4,7 @@ import { chromium, Browser, Page } from 'playwright';
 import { BrowserPageData } from './interfaces/parser.interface';
 import { Server } from './interfaces/servers.interface';
 import { JSDOM } from 'jsdom';
+import { Craft } from './interfaces/crafts.interface';
 
 @Injectable()
 export class ParserGateway implements OnModuleDestroy {
@@ -125,6 +126,36 @@ export class ParserGateway implements OnModuleDestroy {
 		}
 		await browser.close();
 		return Array.from(servers.values());
+	}
+
+	async parseCrafts(): Promise<Craft[]> {
+		const crafts: Set<Craft> = new Set();
+		const browser = await this.createPage();
+
+		const url = 'https://ru-minecraft.ru/krafting-v-minecraft.html';
+		await browser.goto(url, { waitUntil: 'domcontentloaded', timeout: 10_000 });
+		const html = await browser.content();
+		const { window } = new JSDOM(html);
+		Array.from(window.document.querySelectorAll('img'))
+			.filter((i) => i.src.startsWith('https://ru-minecraft.ru/uploads'))
+			.forEach((img) => {
+				const image = img.src;
+				const parent = img.parentElement?.parentElement?.parentElement;
+				if (!parent) {
+					return;
+				}
+				const [name, ingredient, _, description] = Array.from(parent.querySelectorAll('td')).map(
+					(td) => td.textContent
+				);
+
+				if (!name || !ingredient || !description) {
+					return;
+				}
+
+				crafts.add({ image, name, ingredient, description });
+			});
+		await browser.close();
+		return Array.from(crafts);
 	}
 
 	async onModuleDestroy(): Promise<void> {

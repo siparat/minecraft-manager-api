@@ -38,6 +38,7 @@ export default tseslint.config(
 				'warn',
 				{
 					ignoreRestSiblings: true,
+					varsIgnorePattern: '_',
 					caughtErrors: 'none'
 				}
 			],
