@@ -42,6 +42,26 @@ export class ModRepository {
 		return { count, mods: mods.map((m) => ({ ...m, apps: m.apps.map(({ appId }) => ({ id: appId })) })) };
 	}
 
+	async findUsedMods(): Promise<Mod[]> {
+		return this.database.mod.findMany({
+			where: {
+				apps: { some: {} }
+			}
+		});
+	}
+
+	async updateFiles(id: number, files: string[]): Promise<Mod> {
+		try {
+			return await this.database.mod.update({
+				where: { id },
+				data: { files }
+			});
+		} catch (error) {
+			Logger.error(error);
+			throw new InternalServerErrorException('Произошла непредвиденная ошибка при обновлении файлов мода');
+		}
+	}
+
 	async searchModsFromApp(
 		appId: number,
 		isActive: boolean,

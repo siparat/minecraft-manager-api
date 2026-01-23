@@ -28,6 +28,7 @@ import { InjectBot } from 'nestjs-telegraf';
 import { Telegraf } from 'telegraf';
 import { ConfigService } from '@nestjs/config';
 import { RecommendModDto } from './dto/recommend-mod.dto';
+import { ParserService } from 'src/parser/parser.service';
 
 @Injectable()
 export class AppsService {
@@ -39,6 +40,7 @@ export class AppsService {
 		private modRepository: ModRepository,
 		private modService: ModService,
 		private config: ConfigService,
+		private parserService: ParserService,
 		@InjectBot() private bot: Telegraf
 	) {}
 
@@ -216,6 +218,15 @@ export class AppsService {
 		if (!mod) {
 			throw new NotFoundException(ModErrorMessages.NOT_FOUND);
 		}
+
+		this.parserService
+			.saveModfilesToS3(mod)
+			.then((newFiles) => {
+				if (newFiles) {
+					return this.modRepository.updateFiles(mod.id, newFiles);
+				}
+			})
+			.catch((e) => Logger.error(e));
 
 		const updatedApp = await this.appsRepository.toggleModFromApp(appId, modId);
 		if (!mod.translations.length) {

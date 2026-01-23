@@ -3,10 +3,17 @@ import { Download, ParsedMod, ParsedModShort } from './interfaces/mod.interface'
 import { parseCategory } from './utils/parse-category.util';
 import { ParserGateway } from './parser.gateway';
 import { JSDOM } from 'jsdom';
+import { Mod } from 'generated/prisma';
+import { S3Service } from 'src/s3/s3.service';
+import { ModRepository } from 'src/mod/repositories/mod.repository';
 
 @Injectable()
 export class ParserService {
-	constructor(private parserGateway: ParserGateway) {}
+	constructor(
+		private parserGateway: ParserGateway,
+		private s3Service: S3Service,
+		private modRepository: ModRepository
+	) {}
 
 	parseModsFromSearchPage(html: string): ParsedModShort[] {
 		const { window } = new JSDOM(html);
@@ -33,6 +40,69 @@ export class ParserService {
 		}
 
 		return filteredDownloads;
+	}
+
+	async updateModfilesInS3(): Promise<void> {
+		const mods = await this.modRepository.findUsedMods();
+
+		for (const mod of mods) {
+			const files = await this.saveModfilesToS3(mod);
+			if (files) {
+				await this.modRepository.updateFiles(mod.id, files);
+			}
+		}
+	}
+
+	async saveModfilesToS3(mod: Pick<Mod, 'id' | 'parsedSlug' | 'title'>): Promise<string[] | null>;
+	async saveModfilesToS3(mod: ParsedMod): Promise<string[] | null>;
+	async saveModfilesToS3(mod: ParsedMod | Pick<Mod, 'id' | 'parsedSlug' | 'title'>): Promise<string[] | null> {
+		let parsedMod: ParsedMod;
+
+		if ('id' in mod) {
+			if (!mod.parsedSlug) {
+				return null;
+			}
+
+			const page = await this.parserGateway.getModPage(mod.parsedSlug);
+			const modParseResult = await this.parseMod(mod.parsedSlug, page?.nuxtState);
+
+			if (!modParseResult) {
+				return null;
+			}
+			parsedMod = modParseResult;
+		} else {
+			parsedMod = mod;
+		}
+
+		if (parsedMod.downloads[0]?.file.startsWith('https://api.mcpedl.com')) {
+			const relevantsLinks = await this.getRelevantLinks(parsedMod.slug);
+			if (!relevantsLinks) {
+				return null;
+			}
+			parsedMod.downloads = relevantsLinks;
+		}
+
+		const files: string[] = [];
+
+		await Promise.allSettled(
+			parsedMod.downloads.map(async ({ file }) => {
+				const url = new URL(file);
+				const pathname = url.pathname.slice(1);
+				const response = await fetch(url);
+
+				if (response.status !== 200) {
+					Logger.error(`Не удалось скачать файл по ссылке ${file} для мода ${mod.title}`);
+					files.push(file);
+					return;
+				}
+
+				const result = await this.s3Service.uploadFile(await response.bytes(), pathname);
+				files.push(result.Location);
+				Logger.log(`Файл ${pathname} загружен в S3`);
+			})
+		);
+
+		return files;
 	}
 
 	async parseMod(slug: string, nuxt: any): Promise<ParsedMod | null> {

@@ -84,6 +84,9 @@ export class ParserSaga {
 				if (allSlugs.includes(slug)) {
 					const mod = (await this.modRepository.findBySlug(slug)) as ModWithVersions;
 					entity.setVersions(entity.versions.concat(mod.versions));
+					if (mod.files[0]?.startsWith('https://s3.')) {
+						entity.files = mod.files;
+					}
 					await this.modRepository.update(mod.id, entity);
 					Logger.log(`Мод ${slug} был обновлен`);
 					continue;

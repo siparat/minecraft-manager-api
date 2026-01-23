@@ -1,17 +1,19 @@
-FROM node:24-alpine AS build
+FROM mcr.microsoft.com/playwright:v1.57.0-noble AS build
 WORKDIR /opt/app
-ADD *.json ./
+COPY package*.json ./
 RUN npm ci
-ADD . .
+COPY . .
 RUN npm run generate
 RUN npm run build
 
-FROM node:24-alpine
+FROM mcr.microsoft.com/playwright:v1.57.0-noble
 WORKDIR /opt/app
-ADD package*.json ./
+COPY package*.json ./
 RUN npm ci --omit=dev
-COPY --from=build /opt/app/generated ./generated
-COPY --from=build /opt/app/prisma ./prisma
+RUN npx playwright install-deps
+RUN npx playwright install
 COPY --from=build /opt/app/dist ./dist
-CMD ["npm", "run", "start:prod"]
+COPY --from=build /opt/app/prisma ./prisma
+COPY --from=build /opt/app/generated ./generated
 EXPOSE 3000
+CMD ["npm", "run", "start:prod"]

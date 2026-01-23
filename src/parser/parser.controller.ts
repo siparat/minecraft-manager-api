@@ -1,4 +1,4 @@
-import { Controller, HttpCode, HttpStatus, Post, UseGuards } from '@nestjs/common';
+import { Controller, HttpCode, HttpStatus, Logger, Post, UseGuards } from '@nestjs/common';
 import { ParserGateway } from './parser.gateway';
 import { ParserService } from './parser.service';
 import { ModRepository } from 'src/mod/repositories/mod.repository';
@@ -23,5 +23,17 @@ export class ParserController {
 	async startParser(): Promise<void> {
 		const saga = new ParserSaga(this.parserGateway, this.parserService, this.modRepository);
 		saga.state.start();
+	}
+
+	@HttpCode(HttpStatus.OK)
+	@UseGuards(JwtAuthGuard, new RoleGuard([UserRole.ADMIN]))
+	@Post('mod/update-used-files')
+	@Cron(CronExpression.EVERY_WEEK)
+	async updateUsedFiles(): Promise<void> {
+		try {
+			this.parserService.updateModfilesInS3();
+		} catch (error) {
+			Logger.error(error);
+		}
 	}
 }
