@@ -1,26 +1,20 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { Download, ParsedMod, ParsedModShort } from './interfaces/mod.interface';
+import { Injectable } from '@nestjs/common';
+import { Download, ParsedMod } from './interfaces/mod.interface';
 import { parseCategory } from './utils/parse-category.util';
 import { ParserGateway } from './parser.gateway';
-import { JSDOM } from 'jsdom';
 import { Mod } from 'generated/prisma';
-import { S3Service } from 'src/s3/s3.service';
 import { ModRepository } from 'src/mod/repositories/mod.repository';
+import { ContentParserService } from './content-parser.service';
+import { FileStorageService } from './file-storage.service';
 
 @Injectable()
 export class ParserService {
 	constructor(
 		private parserGateway: ParserGateway,
-		private s3Service: S3Service,
+		private contentParser: ContentParserService,
+		private fileStorage: FileStorageService,
 		private modRepository: ModRepository
 	) {}
-
-	parseModsFromSearchPage(html: string): ParsedModShort[] {
-		const { window } = new JSDOM(html);
-		const cards = window.document.querySelectorAll('.fancybox.post');
-		const mods = Array.from(cards).map(this.handleModCard);
-		return mods.filter(Boolean) as ParsedModShort[];
-	}
 
 	async getRelevantLinks(slug: string): Promise<ParsedMod['downloads'] | null> {
 		const page = await this.parserGateway.getModPage(slug);
@@ -42,63 +36,51 @@ export class ParserService {
 		return filteredDownloads;
 	}
 
-	async updateModfilesInS3(): Promise<void> {
-		const mods = await this.modRepository.findUsedMods();
-
-		for (const mod of mods) {
-			const files = await this.saveModfilesToS3(mod);
-			if (files) {
-				await this.modRepository.updateFiles(mod.id, files);
-			}
-		}
-	}
-
-	async saveModfilesToS3(mod: Pick<Mod, 'id' | 'parsedSlug' | 'title'>): Promise<string[] | null>;
+	async saveModfilesToS3(mod: Pick<Mod, 'id' | 'parsedSlug' | 'title' | 'files'>): Promise<string[] | null>;
 	async saveModfilesToS3(mod: ParsedMod): Promise<string[] | null>;
-	async saveModfilesToS3(mod: ParsedMod | Pick<Mod, 'id' | 'parsedSlug' | 'title'>): Promise<string[] | null> {
-		let parsedMod: ParsedMod;
+	async saveModfilesToS3(
+		mod: ParsedMod | Pick<Mod, 'id' | 'parsedSlug' | 'title' | 'files'>
+	): Promise<string[] | null> {
+		let downloads: Pick<Download, 'file'>[] = [];
+		let slug = '';
 
 		if ('id' in mod) {
-			if (!mod.parsedSlug) {
-				return null;
-			}
+			if (!mod.parsedSlug) return null;
+			slug = mod.parsedSlug;
 
-			const page = await this.parserGateway.getModPage(mod.parsedSlug);
-			const modParseResult = await this.parseMod(mod.parsedSlug, page?.nuxtState);
-
-			if (!modParseResult) {
-				return null;
+			const page = await this.parserGateway.getModPage(slug);
+			if (page) {
+				const parsed = this.contentParser.parseMod(slug, page.nuxtState);
+				downloads = parsed ? parsed.downloads : mod.files.map((f) => ({ file: f }));
+			} else {
+				downloads = mod.files.map((f) => ({ file: f }));
 			}
-			parsedMod = modParseResult;
 		} else {
-			parsedMod = mod;
+			downloads = mod.downloads;
+			slug = mod.slug;
 		}
 
-		if (parsedMod.downloads[0]?.file.startsWith('https://api.mcpedl.com')) {
-			const relevantsLinks = await this.getRelevantLinks(parsedMod.slug);
-			if (!relevantsLinks) {
-				return null;
-			}
-			parsedMod.downloads = relevantsLinks;
+		if (downloads[0]?.file.startsWith('https://api.mcpedl.com')) {
+			const relevantsLinks = await this.getRelevantLinks(slug);
+			if (relevantsLinks) downloads = relevantsLinks;
 		}
 
 		const files: string[] = [];
 
 		await Promise.allSettled(
-			parsedMod.downloads.map(async ({ file }) => {
-				const url = new URL(file);
-				const pathname = url.pathname.slice(1);
-				const response = await fetch(url);
-
-				if (response.status !== 200) {
-					Logger.error(`Не удалось скачать файл по ссылке ${file} для мода ${mod.title}`);
-					files.push(file);
-					return;
+			downloads.map(async ({ file }) => {
+				let s3Url: string | null;
+				if (file.startsWith('https://api.mcpedl.com')) {
+					s3Url = await this.fileStorage.uploadFromPlaywright(file);
+				} else {
+					s3Url = await this.fileStorage.uploadFromUrl(file);
 				}
 
-				const result = await this.s3Service.uploadFile(await response.bytes(), pathname);
-				files.push(result.Location);
-				Logger.log(`Файл ${pathname} загружен в S3`);
+				if (s3Url) {
+					files.push(s3Url);
+				} else {
+					files.push(file);
+				}
 			})
 		);
 
@@ -138,32 +120,6 @@ export class ParserService {
 			rating: Number(Number(model.comments_rating?.average || 0).toFixed(2)),
 			versions: model.minecraft_versions?.map((v) => v.name) || [],
 			updatedAt: new Date(model.updated_at)
-		};
-	}
-
-	private handleModCard(card: Element): ParsedModShort | null {
-		const slug = card.querySelector<HTMLAnchorElement>('.fancybox__content__title a')?.href.slice(1, -1);
-		const title = card.querySelector('.fancybox__content__title')?.textContent;
-		const shortDescription = card.querySelector('.fancybox__content__description')?.textContent || undefined;
-		const author = card.querySelector('.fancybox__header__content a')?.textContent || undefined;
-		const dateString = card
-			.querySelector('.fancybox__header__content small')
-			?.textContent?.replace('Published on ', '')
-			.trim();
-		const rating = card.querySelector('.fancybox__header__rating')?.textContent?.trim();
-		const image = card.querySelector<HTMLImageElement>('.post__img__static img')?.src;
-		if (!slug || !title || !image) {
-			Logger.error('Невозможно собрать данные мода');
-			return null;
-		}
-		return {
-			slug,
-			title,
-			shortDescription,
-			author,
-			publishedAt: dateString ? new Date(dateString) : undefined,
-			rating: Number(rating),
-			image
 		};
 	}
 }

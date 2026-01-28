@@ -39,34 +39,6 @@ export class ParserGateway implements OnModuleDestroy {
 		return page;
 	}
 
-	async getModSearchPage(pageNumber: number): Promise<string | null> {
-		const page = await this.createPage();
-		const url = new URL(`page/${pageNumber}`, this.host).toString();
-
-		try {
-			await page.goto(url, {
-				waitUntil: 'domcontentloaded',
-				timeout: 30_000
-			});
-
-			if ((await page.title()).includes('Just a moment')) {
-				Logger.warn(`Cloudflare защита на странице ${url}`);
-				return null;
-			}
-
-			await page.waitForSelector('.fancybox.post', {
-				timeout: 15_000
-			});
-
-			return await page.content();
-		} catch (e) {
-			Logger.error(`Ошибка при запросе страницы: ${url}`, e);
-			return null;
-		} finally {
-			await page.close();
-		}
-	}
-
 	async getModPage(slug: string): Promise<BrowserPageData | null> {
 		const page = await this.createPage();
 		const url = new URL(slug, this.host).toString();
@@ -156,6 +128,32 @@ export class ParserGateway implements OnModuleDestroy {
 			});
 		await browser.close();
 		return Array.from(crafts);
+	}
+
+	async downloadFile(url: string): Promise<{ savePath: string; filename: string } | null> {
+		const page = await this.createPage();
+		try {
+			const downloadPromise = page.waitForEvent('download', { timeout: 60000 });
+
+			await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 }).catch(() => {});
+
+			if ((await page.title()).includes('Just a moment')) {
+				Logger.warn({ url }, 'Cloudflare защита обнаружена. Пожалуйста, решите капчу.');
+			}
+
+			const download = await downloadPromise;
+			const savePath = await download.path();
+			if (!savePath) return null;
+
+			const filename = download.suggestedFilename();
+
+			return { savePath, filename };
+		} catch (e) {
+			Logger.error({ err: e, url }, 'Ошибка скачивания файла через Playwright');
+			return null;
+		} finally {
+			await page.close();
+		}
 	}
 
 	async onModuleDestroy(): Promise<void> {
