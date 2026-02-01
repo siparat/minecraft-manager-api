@@ -143,7 +143,7 @@ export class AppsService {
 		}
 
 		const adminId = this.config.get('ADMIN_CHAT_ID');
-		const message = `Пользователь приложения *${app.translations[0].name}* предложил мод:\n\n*Почта пользователя:* ${dto.email}\n*Ссылка на мод:* ${dto.url}\n*Описание:* ${dto.description}`;
+		const message = `Пользователь приложения *${app.translations[0].name}* предложил мод:\n\n*Почта пользователя:* ${dto.email}\n*Описание:* ${dto.description}`;
 
 		try {
 			await this.bot.telegram.sendMessage(adminId, message, { parse_mode: 'Markdown' });

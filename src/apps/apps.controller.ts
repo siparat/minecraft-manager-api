@@ -187,7 +187,6 @@ export class AppsController {
 			'Рекомендация мода': {
 				value: {
 					email: 'a@b.ru',
-					url: 'https://minecraft-inside.ru/mods/9093-portal-gun-mod.html',
 					description: 'Классный мод'
 				}
 			}
