@@ -12,12 +12,15 @@ export class AppSdkEntity implements IAppSdkEntity {
 	firstOpenCode?: string;
 	firstInterCode?: string;
 	firstNativeCode?: string;
+	firstBannerCode?: string;
 	secondOpenCode?: string;
 	secondInterCode?: string;
 	secondNativeCode?: string;
+	secondBannerCode?: string;
 	thirdOpenCode?: string;
 	thirdInterCode?: string;
 	thirdNativeCode?: string;
+	thirdBannerCode?: string;
 
 	constructor(sdk: IAppSdkEntity) {
 		Object.assign(this, sdk);

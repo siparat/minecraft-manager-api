@@ -55,14 +55,17 @@ model AppSdk {
     firstOpenCode   String?
     firstInterCode  String?
     firstNativeCode String?
+    firstBannerCode String?
 
     secondOpenCode   String?
     secondInterCode  String?
     secondNativeCode String?
+    secondBannerCode String?
 
     thirdOpenCode   String?
     thirdInterCode  String?
     thirdNativeCode String?
+    thirdBannerCode String?
 }
 
 model Language {
