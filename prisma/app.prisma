@@ -50,6 +50,8 @@ model AppSdk {
     adMobToken         String?
     delayInter         Int     @default(120)
 
+	adsNativeType AdsNativeType @default(NATIVE)
+
     firstOpenCode   String?
     firstInterCode  String?
     firstNativeCode String?
@@ -95,4 +97,9 @@ enum IssueStatus {
     CREATED
     SOLVED
     DELETED
+}
+
+enum AdsNativeType {
+    NATIVE
+	BANNER
 }
