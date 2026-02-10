@@ -39,12 +39,16 @@ model AppIssue {
 }
 
 model AppSdk {
-    appId         Int     @unique
-    app           App     @relation(fields: [appId], references: [id], onDelete: Cascade)
-    isAdsEnabled  Boolean @default(true)
-    metricaToken  String?
-    appLovinToken String?
-    adMobToken    String?
+    appId              Int     @unique
+    app                App     @relation(fields: [appId], references: [id], onDelete: Cascade)
+    isAdsEnabled       Boolean @default(true)
+    isOpenAdsEnabled   Boolean @default(true)
+    isInterAdsEnabled  Boolean @default(true)
+    isNativeAdsEnabled Boolean @default(true)
+    metricaToken       String?
+    appLovinToken      String?
+    adMobToken         String?
+    delayInter         Int     @default(120)
 
     firstOpenCode   String?
     firstInterCode  String?
