@@ -163,7 +163,7 @@ export class AppsService {
 		return new AppSdkEntity(updatedSdk);
 	}
 
-	async toggleViewAds(appId: number): Promise<AppSdkEntity> {
+	async toggleViewAds(appId: number, type?: 'open' | 'inter' | 'native'): Promise<AppSdkEntity> {
 		const app = await this.appsRepository.findById(appId);
 		if (!app) {
 			throw new NotFoundException(AppsErrorMessages.NOT_FOUND);
@@ -173,7 +173,22 @@ export class AppsService {
 			throw new UnprocessableEntityException(AppsErrorMessages.SDK_NOT_FOUND);
 		}
 
-		const sdkEntity = new AppSdkEntity({ isAdsEnabled: !app.sdk.isAdsEnabled });
+		const sdkEntity = new AppSdkEntity({});
+		switch (type) {
+			case 'open':
+				sdkEntity.isOpenAdsEnabled = !app.sdk.isOpenAdsEnabled;
+				break;
+			case 'inter':
+				sdkEntity.isInterAdsEnabled = !app.sdk.isInterAdsEnabled;
+				break;
+			case 'native':
+				sdkEntity.isNativeAdsEnabled = !app.sdk.isNativeAdsEnabled;
+				break;
+			default:
+				sdkEntity.isAdsEnabled = !app.sdk.isAdsEnabled;
+				break;
+		}
+
 		const updatedSdk = await this.appSdkRepository.updateSdk(appId, sdkEntity);
 		return new AppSdkEntity(updatedSdk);
 	}

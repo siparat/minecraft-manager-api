@@ -2,6 +2,9 @@ import { IAppSdkEntity } from '../interfaces/app-sdk-entity.interface';
 
 export class AppSdkEntity implements IAppSdkEntity {
 	isAdsEnabled?: boolean;
+	isOpenAdsEnabled?: boolean;
+	isInterAdsEnabled?: boolean;
+	isNativeAdsEnabled?: boolean;
 	appId?: number;
 	metricaToken?: string;
 	appLovinToken?: string;

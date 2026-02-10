@@ -1,0 +1,5 @@
+-- AlterTable
+ALTER TABLE "AppSdk" ADD COLUMN     "delayInter" INTEGER NOT NULL DEFAULT 120,
+ADD COLUMN     "isInterAdsEnabled" BOOLEAN NOT NULL DEFAULT true,
+ADD COLUMN     "isNativeAdsEnabled" BOOLEAN NOT NULL DEFAULT true,
+ADD COLUMN     "isOpenAdsEnabled" BOOLEAN NOT NULL DEFAULT true;

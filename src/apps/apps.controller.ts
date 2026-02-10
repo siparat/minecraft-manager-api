@@ -388,6 +388,30 @@ export class AppsController {
 		return sdk;
 	}
 
+	@UseGuards(JwtAuthGuard, new RoleGuard([UserRole.ADMIN]))
+	@Post(':id/sdk/ads/open/toggle')
+	async toggleViewOpenAds(@Param('id', ParseIntPipe) appId: number, @UserInfo() user: User): Promise<AppSdkEntity> {
+		const sdk = await this.appsService.toggleViewAds(appId, 'open');
+		Logger.log(`[${user.username}] Open реклама приложения ${appId} была переключена`);
+		return sdk;
+	}
+
+	@UseGuards(JwtAuthGuard, new RoleGuard([UserRole.ADMIN]))
+	@Post(':id/sdk/ads/inter/toggle')
+	async toggleViewInterAds(@Param('id', ParseIntPipe) appId: number, @UserInfo() user: User): Promise<AppSdkEntity> {
+		const sdk = await this.appsService.toggleViewAds(appId, 'inter');
+		Logger.log(`[${user.username}] Inter реклама приложения ${appId} была переключена`);
+		return sdk;
+	}
+
+	@UseGuards(JwtAuthGuard, new RoleGuard([UserRole.ADMIN]))
+	@Post(':id/sdk/ads/native/toggle')
+	async toggleViewNativeAds(@Param('id', ParseIntPipe) appId: number, @UserInfo() user: User): Promise<AppSdkEntity> {
+		const sdk = await this.appsService.toggleViewAds(appId, 'native');
+		Logger.log(`[${user.username}] Native реклама приложения ${appId} была переключена`);
+		return sdk;
+	}
+
 	@UseGuards(JwtAuthGuard)
 	@Patch(':id/status/:status')
 	async setNewStatus(
