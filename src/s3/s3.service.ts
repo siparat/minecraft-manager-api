@@ -19,7 +19,6 @@ export class S3Service {
 		try {
 			return await this.s3.upload({ Body: body, Bucket: this.bucketName, Key: key || randomUUID() }).promise();
 		} catch (error) {
-			console.log(error);
 			Logger.error('Ошибка при загрузке файла в S3', error);
 			throw error;
 		}

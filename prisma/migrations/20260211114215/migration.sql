@@ -1,0 +1,5 @@
+-- AlterTable
+ALTER TABLE "AppSdk" ADD COLUMN     "chanceShowInterAds" INTEGER NOT NULL DEFAULT 100,
+ADD COLUMN     "chanceShowNativeAds" INTEGER NOT NULL DEFAULT 100,
+ADD COLUMN     "chanceShowOpenAds" INTEGER NOT NULL DEFAULT 100,
+ADD COLUMN     "countNativePreload" INTEGER NOT NULL DEFAULT 5;

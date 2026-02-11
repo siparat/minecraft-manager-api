@@ -63,6 +63,9 @@ export class AppsRepository {
 	getAll(lanugageCode?: string): Promise<AppWithTranslations[]> {
 		return this.database.app.findMany({
 			include: {
+				sdk: {
+					select: { isAdsEnabled: true, isInterAdsEnabled: true, isNativeAdsEnabled: true, isOpenAdsEnabled: true }
+				},
 				translations: {
 					where: lanugageCode ? { language: { code: lanugageCode } } : undefined,
 					select: { name: true, language: true },

@@ -21,6 +21,12 @@ export class AppSdkEntity implements IAppSdkEntity {
 	thirdInterCode?: string;
 	thirdNativeCode?: string;
 	thirdBannerCode?: string;
+	delayInter?: number;
+	chanceShowInterAds?: number;
+	chanceShowNativeAds?: number;
+	chanceShowOpenAds?: number;
+	countNativePreload?: number;
+	adsInverval?: number;
 
 	constructor(sdk: IAppSdkEntity) {
 		Object.assign(this, sdk);
