@@ -12,7 +12,7 @@ export class AppEntity implements IAppEntity {
 	apk?: string;
 	bundle?: string;
 	packageName: string;
-	logo: string;
+	logo?: string;
 	banner?: string | null;
 	translations: AppTranslationEntity[];
 	appScreenshots: string[];
@@ -24,7 +24,7 @@ export class AppEntity implements IAppEntity {
 		this.updatedAt = app.updatedAt;
 		this.status = app.status;
 		this.packageName = app.packageName;
-		this.logo = app.logo;
+		this.logo = app.logo || undefined;
 		this.apk = app.apk || undefined;
 		this.bundle = app.bundle || undefined;
 		this.banner = app.banner || 'banner' in app ? null : undefined;

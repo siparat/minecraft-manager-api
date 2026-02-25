@@ -5,7 +5,7 @@ model App {
     updatedAt      DateTime         @updatedAt
     packageName    String           @unique
     status         AppStatus        @default(PLANNED)
-    logo           String
+    logo           String?
     firebaseFile   String?
     banner         String?
     apk            String?

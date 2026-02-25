@@ -10,6 +10,7 @@ export type IAppEntity = PartialFields<
 	| 'updatedAt'
 	| 'apk'
 	| 'bundle'
+	| 'logo'
 	| 'banner'
 	| 'firebaseFile'
 	| 'order'
