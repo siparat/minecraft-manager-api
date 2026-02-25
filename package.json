@@ -46,7 +46,7 @@
     "fs-extra": "^11.3.0",
     "jsdom": "^26.1.0",
     "keyv": "^5.5.5",
-    "minecraft-manager-schemas": "^0.0.43",
+    "minecraft-manager-schemas": "^0.0.44",
     "multer": "^2.0.2",
     "nestjs-telegraf": "^2.9.1",
     "nestjs-zod": "^4.3.1",
