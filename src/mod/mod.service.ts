@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { ModEntity } from './entities/mod.entity';
 import { CreateModDto } from './dto/create-mod.dto';
 import { ModRepository } from './repositories/mod.repository';
@@ -29,14 +29,21 @@ export class ModService {
 			return findedModEntity;
 		}
 
-		const newLinks = await this.parser.getRelevantLinks(mod.parsedSlug);
-		if (!newLinks || !newLinks.length) {
+		try {
+			const newLinks = await this.parser.getRelevantLinks(mod.parsedSlug);
+			if (!newLinks || !newLinks.length) {
+				return findedModEntity;
+			}
+
+			const entity = new ModEntity({ ...mod, files: newLinks.map(({ file }) => file) }).setTranslations(
+				mod.translations
+			);
+			this.modRepository.update(mod.id, entity);
+			return entity.setVersions(mod.versions).setTranslations(mod.translations);
+		} catch (error) {
+			Logger.error(error);
 			return findedModEntity;
 		}
-
-		const entity = new ModEntity({ ...mod, files: newLinks.map(({ file }) => file) }).setTranslations(mod.translations);
-		this.modRepository.update(mod.id, entity);
-		return entity.setVersions(mod.versions).setTranslations(mod.translations);
 	}
 
 	async create(dto: CreateModDto, isParsed: boolean = false): Promise<ModEntity> {
