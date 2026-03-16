@@ -38,6 +38,8 @@ export class AppModule implements OnApplicationBootstrap {
 	constructor(@InjectBot() private bot: Telegraf) {}
 
 	onApplicationBootstrap(): void {
-		this.bot.on('message', (ctx) => ctx.reply(`User ID: ${ctx.from.id}\nChat ID: ${ctx.chat.id}`));
+		this.bot.command('id', (ctx) =>
+			ctx.reply(`User ID: ${ctx.from.id}\nChat ID: ${ctx.chat.id}\nTopic ID: ${ctx.message.message_thread_id}`)
+		);
 	}
 }

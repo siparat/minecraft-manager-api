@@ -119,12 +119,20 @@ export class AppsService {
 
 		const adminId = this.config.get('ADMIN_CHAT_ID');
 		const hostApp = this.config.get('HOST_APP');
+		const topicId = this.config.get('ISSUES_TOPIC_ID');
+
 		if (adminId && hostApp) {
 			const urlToIssue = hostApp + `/app/${appId}/issues`;
-			const message = `Пришла новая [жалоба](${urlToIssue}) на приложение *${app.translations[0].name}* (*${app.packageName}*)\n\n*Текст жалобы:*\n${text}`;
+			const message = `🚨 <b>Новая жалоба от пользователя</b>
+
+👤 Почта: <a href="mailto:${email}">${email}</a>
+📱 Приложение: <a href="${urlToIssue}">${app.translations[0].name} (${app.packageName})</a>
+
+<b>💬 Сообщение пользователя:</b>
+<blockquote>${text}</blockquote>`;
 
 			try {
-				await this.bot.telegram.sendMessage(adminId, message, { parse_mode: 'Markdown' });
+				await this.bot.telegram.sendMessage(adminId, message, { parse_mode: 'HTML', message_thread_id: topicId });
 			} catch (error) {
 				Logger.error(error);
 			}
@@ -222,7 +230,10 @@ export class AppsService {
 			} catch (error) {
 				if (error instanceof HttpException) {
 					const adminId = this.config.get('ADMIN_CHAT_ID');
-					await this.bot.telegram.sendMessage(adminId, `Ошибка при переводе мода ${mod.title}: ${error.message}`);
+					const topicId = this.config.get('ERRORS_TOPIC_ID');
+					await this.bot.telegram.sendMessage(adminId, `Ошибка при переводе мода ${mod.title}: ${error.message}`, {
+						message_thread_id: topicId
+					});
 					Logger.error(error);
 				}
 			}
