@@ -186,10 +186,18 @@ export class ModRepository {
 
 	async saveTranslations(translations: ModTranslationEntity[]): Promise<void> {
 		try {
-			await this.database.modTranslation.createMany({ data: translations });
+			await this.database.$transaction(
+				translations.map(({ modId, languageId, description }) =>
+					this.database.modTranslation.upsert({
+						where: { modId_languageId: { modId, languageId } },
+						update: { description },
+						create: { modId, languageId, description }
+					})
+				)
+			);
 		} catch (error) {
 			Logger.error(error);
-			throw new InternalServerErrorException('Произошла непредвиденная ошибка при создании перевода мода');
+			throw new InternalServerErrorException('Произошла непредвиденная ошибка при сохранении перевода мода');
 		}
 	}
 

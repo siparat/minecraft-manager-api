@@ -57,12 +57,16 @@ export class ModService {
 		if (!mod) {
 			throw new NotFoundException(ModErrorMessages.NOT_FOUND);
 		}
+		const descriptionChanged = dto.description !== undefined && dto.description !== mod.description;
 
 		const modEntity = new ModEntity({ ...mod, ...dto }).setVersions(
 			dto.versions ? dto.versions.map((version) => ({ version })) : mod.versions
 		);
 
 		const updatedMod = await this.modRepository.update(id, modEntity);
+		if (descriptionChanged && mod.translations.length) {
+			await this.translateDescription(id);
+		}
 		return new ModEntity(updatedMod).setVersions(modEntity.versions);
 	}
 
