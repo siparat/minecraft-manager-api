@@ -5,5 +5,6 @@ export const AppsErrorMessages = {
 	ISSUE_NOT_FOUND: 'Жалоба с таким идентификатором не найдена',
 	ISSUE_IS_NOT_HIS: 'Жалоба не принадлежит данному приложению',
 	SDK_NOT_FOUND: 'SDK данного приложения отсутствует',
-	APP_DOES_NOT_CONTAIN_MODS: 'В приложении не добавлены моды'
+	APP_DOES_NOT_CONTAIN_MODS: 'В приложении не добавлены моды',
+	APP_MOD_NOT_FOUND: 'Мод не добавлен в данное приложение'
 };

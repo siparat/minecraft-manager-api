@@ -22,6 +22,7 @@ import { AppSdkEntity } from './entities/app-sdk.entity';
 import { UpdateSdkDto } from './dto/update-sdk.dto';
 import { AppSdkRepository } from './repositories/app-sdk.repository';
 import { ModRepository } from 'src/mod/repositories/mod.repository';
+import { ModSearchItem, ModSearchResponse } from 'src/mod/interfaces/mod-search-response.interface';
 import { ModErrorMessages } from 'src/mod/mod.constants';
 import { ModService } from 'src/mod/mod.service';
 import { InjectBot } from 'nestjs-telegraf';
@@ -275,6 +276,62 @@ export class AppsService {
 			}
 		}
 		return new AppEntity(updatedApp);
+	}
+
+	async incrementModDownloads(appId: number, modId: number): Promise<{ downloadsCount: number }> {
+		const appMod = await this.appsRepository.findAppMod(appId, modId);
+		if (!appMod) {
+			throw new NotFoundException(AppsErrorMessages.APP_MOD_NOT_FOUND);
+		}
+		return this.appsRepository.incrementModDownloads(appId, modId);
+	}
+
+	async getModOfDay(appId: number, language?: string): Promise<ModSearchItem> {
+		const app = await this.appsRepository.findById(appId);
+		if (!app) {
+			throw new NotFoundException(AppsErrorMessages.NOT_FOUND);
+		}
+
+		if (language !== 'ru') {
+			language = 'en';
+		}
+		const mods = await this.appsRepository.getTopModsFromApp(appId, language);
+		if (!mods.length) {
+			throw new NotFoundException(AppsErrorMessages.APP_DOES_NOT_CONTAIN_MODS);
+		}
+
+		const day = new Date().toISOString().slice(0, 10);
+		const hash = `${appId}-${day}`.split('').reduce((sum, char) => sum + char.charCodeAt(0), 0);
+		const mod = mods[hash % mods.length];
+		const description = mod.translations[0]?.description;
+		if (description) {
+			mod.description = description;
+		}
+		mod.translations = [];
+		return { ...mod, reactionsCount: mod._count.reactions };
+	}
+
+	async getNewMods(appId: number, take: number, language?: string): Promise<ModSearchResponse> {
+		const app = await this.appsRepository.findById(appId);
+		if (!app) {
+			throw new NotFoundException(AppsErrorMessages.NOT_FOUND);
+		}
+
+		if (language !== 'ru') {
+			language = 'en';
+		}
+		const mods = await this.appsRepository.getNewModsFromApp(appId, take, language);
+		return {
+			count: mods.length,
+			mods: mods.map((mod) => {
+				const description = mod.translations[0]?.description;
+				if (description) {
+					mod.description = description;
+				}
+				mod.translations = [];
+				return { ...mod, reactionsCount: mod._count.reactions };
+			})
+		};
 	}
 
 	private async validateTranslations(translations: Pick<AppTranslation, 'languageId' | 'name'>[]): Promise<boolean> {

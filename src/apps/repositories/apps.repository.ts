@@ -1,5 +1,5 @@
 import { Injectable, InternalServerErrorException, Logger } from '@nestjs/common';
-import { App, AppTranslation, Mod } from 'generated/prisma';
+import { App, AppMod, AppTranslation, Mod, ModTranslation, ModVersion } from 'generated/prisma';
 import { DatabaseService } from 'src/database/database.service';
 import { AppEntity } from '../entities/app.entity';
 import { AppFullInfo, AppWithTranslations } from '../interfaces/app.interface';
@@ -112,6 +112,23 @@ export class AppsRepository {
 		}
 	}
 
+	findAppMod(appId: number, modId: number): Promise<AppMod | null> {
+		return this.database.appMod.findUnique({ where: { appId_modId: { appId, modId } } });
+	}
+
+	async incrementModDownloads(appId: number, modId: number): Promise<Pick<AppMod, 'downloadsCount'>> {
+		try {
+			return await this.database.appMod.update({
+				where: { appId_modId: { appId, modId } },
+				data: { downloadsCount: { increment: 1 } },
+				select: { downloadsCount: true }
+			});
+		} catch (error) {
+			Logger.error(error);
+			throw new InternalServerErrorException('Произошла непредвиденная ошибка при обновлении скачиваний мода');
+		}
+	}
+
 	async update(appId: number, { translations: _, ...appEntity }: AppEntity): Promise<AppWithTranslations> {
 		try {
 			return await this.database.app.update({
@@ -174,5 +191,64 @@ export class AppsRepository {
 			orderBy: { id: 'asc' },
 			skip
 		});
+	}
+
+	async getTopModsFromApp(
+		appId: number,
+		language?: string
+	): Promise<
+		(Omit<Mod, 'htmlDescription'> & {
+			versions: ModVersion[];
+			translations: ModTranslation[];
+			_count: { apps: number; reactions: number };
+		})[]
+	> {
+		const appMods = await this.database.appMod.findMany({
+			where: { appId },
+			take: 5,
+			orderBy: { order: 'asc' },
+			select: {
+				mod: {
+					omit: { htmlDescription: true },
+					include: {
+							versions: true,
+							translations: language ? { where: { language: { code: language } } } : true,
+							_count: { select: { apps: true, reactions: true } }
+						}
+					}
+				}
+		});
+
+		return appMods.map(({ mod }) => mod);
+	}
+
+	async getNewModsFromApp(
+		appId: number,
+		take: number,
+		language?: string
+	): Promise<
+		(Omit<Mod, 'htmlDescription'> & {
+			versions: ModVersion[];
+			translations: ModTranslation[];
+			_count: { apps: number; reactions: number };
+		})[]
+	> {
+		const appMods = await this.database.appMod.findMany({
+			where: { appId },
+			take,
+			orderBy: { createdAt: 'desc' },
+			select: {
+				mod: {
+					omit: { htmlDescription: true },
+					include: {
+						versions: true,
+						translations: language ? { where: { language: { code: language } } } : true,
+						_count: { select: { apps: true, reactions: true } }
+					}
+				}
+			}
+		});
+
+		return appMods.map(({ mod }) => mod);
 	}
 }

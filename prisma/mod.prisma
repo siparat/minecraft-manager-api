@@ -16,6 +16,7 @@ model Mod {
     files             String[]
     versions          ModVersion[]
     apps              AppMod[]
+    reactions         ModReaction[]
 }
 
 model ModVersion {
@@ -39,4 +40,25 @@ enum ModCategory {
     WORLD
     TEXTURE_PACK
     SKIN_PACK
+}
+
+model ModReaction {
+    id           Int             @id @default(autoincrement())
+    mod          Mod             @relation(fields: [modId], references: [id], onDelete: Cascade)
+    modId        Int
+    clientUserId String
+    type         ModReactionType
+    createdAt    DateTime        @default(now())
+    updatedAt    DateTime        @updatedAt
+
+    @@unique([modId, clientUserId])
+    @@index([modId])
+}
+
+enum ModReactionType {
+    LIKE
+    FIRE
+    LOVE
+    FUNNY
+    WOW
 }

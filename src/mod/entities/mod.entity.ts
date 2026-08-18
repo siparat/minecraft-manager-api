@@ -19,6 +19,9 @@ export class ModEntity implements IModEntity {
 	files: string[];
 	versions: ModVersion[];
 	translations: ModTranslationEntity[];
+	reactionsCount?: number;
+	similarMods: ModEntity[];
+	trendingPosition: number | null;
 
 	constructor(mod: IModEntity) {
 		this.id = mod.id;
@@ -35,6 +38,9 @@ export class ModEntity implements IModEntity {
 		this.parsedSlug = mod.parsedSlug || undefined;
 		this.htmlDescription = mod.htmlDescription || undefined;
 		this.descriptionImages = mod.descriptionImages || [];
+		this.reactionsCount = mod.reactionsCount;
+		this.similarMods = (mod.similarMods || []).map((similarMod) => new ModEntity(similarMod));
+		this.trendingPosition = mod.trendingPosition ?? null;
 		this.versions = [];
 		this.translations = [];
 	}
@@ -46,6 +52,11 @@ export class ModEntity implements IModEntity {
 
 	setTranslations(translations: ModTranslation[]): this {
 		this.translations = translations;
+		return this;
+	}
+
+	setSimilarMods(mods: ModEntity[]): this {
+		this.similarMods = mods;
 		return this;
 	}
 }

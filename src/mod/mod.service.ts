@@ -1,4 +1,4 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { ModEntity } from './entities/mod.entity';
 import { CreateModDto } from './dto/create-mod.dto';
 import { ModRepository } from './repositories/mod.repository';
@@ -7,7 +7,7 @@ import { ModErrorMessages } from './mod.constants';
 import { ModTranslationEntity } from './entities/mod-translation.entity';
 import { DeeplGateway } from 'src/integrations/deepl/deepl.gateway';
 import { ConfigService } from '@nestjs/config';
-import { Mod } from 'generated/prisma';
+import { Mod, ModReactionType } from 'generated/prisma';
 import { ParserService } from 'src/parser/parser.service';
 
 @Injectable()
@@ -19,12 +19,23 @@ export class ModService {
 		private config: ConfigService
 	) {}
 
-	async findById(id: number, languageCode?: string): Promise<ModEntity> {
+	async findById(id: number, languageCode?: string, appId?: number): Promise<ModEntity> {
 		const mod = await this.modRepository.findById(id, languageCode);
 		if (!mod) {
 			throw new NotFoundException(ModErrorMessages.NOT_FOUND);
 		}
-		const findedModEntity = new ModEntity(mod).setVersions(mod.versions).setTranslations(mod.translations);
+		const similarMods = appId ? await this.modRepository.getRandomSimilarMods(appId, id, languageCode) : [];
+		const trendingPosition = appId ? await this.modRepository.getTrendingPosition(appId, id) : null;
+		const similarModEntities = similarMods.map((mod) => {
+			const description = mod.translations[0]?.description;
+			const entity = new ModEntity({ ...mod, description: description || mod.description, reactionsCount: mod._count.reactions });
+			entity.translations = [];
+			return entity.setVersions(mod.versions);
+		});
+		const findedModEntity = new ModEntity({ ...mod, reactionsCount: mod._count.reactions, trendingPosition })
+			.setVersions(mod.versions)
+			.setTranslations(mod.translations)
+			.setSimilarMods(similarModEntities);
 		if (!mod.parsedSlug || !mod.files[0]?.startsWith('https://api.mcpedl.com')) {
 			return findedModEntity;
 		}
@@ -35,15 +46,69 @@ export class ModService {
 				return findedModEntity;
 			}
 
-			const entity = new ModEntity({ ...mod, files: newLinks.map(({ file }) => file) }).setTranslations(
-				mod.translations
-			);
+			const entity = new ModEntity({
+				...mod,
+				files: newLinks.map(({ file }) => file),
+				reactionsCount: mod._count.reactions,
+				trendingPosition
+			}).setTranslations(mod.translations);
 			this.modRepository.update(mod.id, entity);
-			return entity.setVersions(mod.versions).setTranslations(mod.translations);
+			return entity.setVersions(mod.versions).setTranslations(mod.translations).setSimilarMods(similarModEntities);
 		} catch (error) {
 			Logger.error(error);
 			return findedModEntity;
 		}
+	}
+
+	async getReactions(
+		modId: number,
+		clientUserId?: string
+	): Promise<{ selected: ModReactionType | null; counts: Record<ModReactionType, number>; total: number }> {
+		const mod = await this.modRepository.findById(modId);
+		if (!mod) {
+			throw new NotFoundException(ModErrorMessages.NOT_FOUND);
+		}
+		const summary = await this.modRepository.getReactionSummary(modId, clientUserId);
+		const counts = Object.values(ModReactionType).reduce(
+			(acc, type) => {
+				acc[type] = summary.counts.find((item) => item.type === type)?.count ?? 0;
+				return acc;
+			},
+			{} as Record<ModReactionType, number>
+		);
+		return { selected: summary.selected, counts, total: Object.values(counts).reduce((sum, count) => sum + count, 0) };
+	}
+
+	async setReaction(
+		modId: number,
+		clientUserId: string | undefined,
+		reaction: ModReactionType | null | undefined
+	): Promise<void> {
+		if (!clientUserId) {
+			throw new BadRequestException(ModErrorMessages.CLIENT_USER_ID_REQUIRED);
+		}
+		if (reaction === undefined) {
+			throw new BadRequestException(ModErrorMessages.REACTION_REQUIRED);
+		}
+		if (reaction !== null && !Object.values(ModReactionType).includes(reaction)) {
+			throw new BadRequestException(ModErrorMessages.UNKNOWN_REACTION);
+		}
+		const mod = await this.modRepository.findById(modId);
+		if (!mod) {
+			throw new NotFoundException(ModErrorMessages.NOT_FOUND);
+		}
+		await this.modRepository.setReaction(modId, clientUserId, reaction);
+	}
+
+	async getDownloads(modId: number): Promise<{
+		total: number;
+		apps: { appId: number; packageName: string; name: string; downloadsCount: number }[];
+	}> {
+		const mod = await this.modRepository.findById(modId);
+		if (!mod) {
+			throw new NotFoundException(ModErrorMessages.NOT_FOUND);
+		}
+		return this.modRepository.getDownloads(modId);
 	}
 
 	async create(dto: CreateModDto, isParsed: boolean = false): Promise<ModEntity> {

@@ -1,5 +1,5 @@
 import { Injectable, InternalServerErrorException, Logger } from '@nestjs/common';
-import { Language, Mod, ModVersion, Prisma } from 'generated/prisma';
+import { Language, Mod, ModReactionType, ModVersion, Prisma } from 'generated/prisma';
 import { DatabaseService } from 'src/database/database.service';
 import { ModEntity } from '../entities/mod.entity';
 import { ModWithVersions } from '../interfaces/mod.interface';
@@ -35,11 +35,22 @@ export class ModRepository {
 			where,
 			take,
 			skip,
-			include: { versions: true, _count: { select: { apps: true } }, apps: { select: { appId: true } } },
+			include: {
+				versions: true,
+				_count: { select: { apps: true, reactions: true } },
+				apps: { select: { appId: true } }
+			},
 			orderBy: sort ? ModSorts[sort.key](sort.value).mod : { createdAt: 'desc' }
 		});
 		const count = await this.database.mod.count({ where });
-		return { count, mods: mods.map((m) => ({ ...m, apps: m.apps.map(({ appId }) => ({ id: appId })) })) };
+		return {
+			count,
+			mods: mods.map((m) => ({
+				...m,
+				reactionsCount: m._count.reactions,
+				apps: m.apps.map(({ appId }) => ({ id: appId }))
+			}))
+		};
 	}
 
 	async findUsedMods(): Promise<Mod[]> {
@@ -100,7 +111,7 @@ export class ModRepository {
 							include: {
 								translations: language ? { where: { language: { code: language } } } : true,
 								versions: true,
-								_count: { select: { apps: true } },
+								_count: { select: { apps: true, reactions: true } },
 								apps: { select: { appId: true }, where: { appId } }
 							}
 						}
@@ -111,7 +122,11 @@ export class ModRepository {
 			const count = await this.database.appMod.count({ where });
 			return {
 				count,
-				mods: mods.map((m) => ({ ...m, apps: m.apps.map(({ appId }) => ({ id: appId })) })) as unknown as Mod[]
+				mods: mods.map((m) => ({
+					...m,
+					reactionsCount: m._count.reactions,
+					apps: m.apps.map(({ appId }) => ({ id: appId }))
+				}))
 			};
 		}
 		const where: Prisma.ModWhereInput = {
@@ -131,7 +146,7 @@ export class ModRepository {
 			include: {
 				translations: language ? { where: { language: { code: language } } } : true,
 				versions: true,
-				_count: { select: { apps: true } },
+				_count: { select: { apps: true, reactions: true } },
 				apps: { select: { appId: true }, where: { appId } }
 			},
 			orderBy: sort ? ModSorts[sort.key](sort.value).mod : undefined
@@ -143,8 +158,9 @@ export class ModRepository {
 			count,
 			mods: mods.map((m) => ({
 				...m,
+				reactionsCount: m._count.reactions,
 				apps: m.apps.map(({ appId }) => ({ id: appId }))
-			})) as unknown as Mod[]
+			}))
 		};
 	}
 
@@ -218,7 +234,7 @@ export class ModRepository {
 						}))
 					}
 				},
-				include: { versions: true, _count: { select: { apps: true } } }
+				include: { versions: true, _count: { select: { apps: true, reactions: true } } }
 			});
 		} catch (error) {
 			Logger.error(error);
@@ -243,7 +259,7 @@ export class ModRepository {
 								}
 							: undefined
 				},
-				include: { versions: true, _count: { select: { apps: true } } }
+				include: { versions: true, _count: { select: { apps: true, reactions: true } } }
 			});
 		} catch (error) {
 			Logger.error(error);
@@ -260,7 +276,7 @@ export class ModRepository {
 				translations: {
 					where: { language: { code: languageCode } }
 				},
-				_count: { select: { apps: true } }
+				_count: { select: { apps: true, reactions: true } }
 			}
 		})) as unknown as ModWithVersions;
 	}
@@ -268,8 +284,123 @@ export class ModRepository {
 	async findBySlug(slug: string): Promise<ModWithVersions | null> {
 		return this.database.mod.findUnique({
 			where: { parsedSlug: slug },
-			include: { versions: true, translations: true, _count: { select: { apps: true } } }
+			include: { versions: true, translations: true, _count: { select: { apps: true, reactions: true } } }
 		});
+	}
+
+	async getRandomSimilarMods(appId: number, modId: number, languageCode?: string): Promise<ModWithVersions[]> {
+		const where: Prisma.AppModWhereInput = { appId, modId: { not: modId } };
+		const count = await this.database.appMod.count({ where });
+		const take = Math.min(3, count);
+		const offsets = new Set<number>();
+		while (offsets.size < take) {
+			offsets.add(Math.floor(Math.random() * count));
+		}
+
+		const appMods = await Promise.all(
+			[...offsets].map((skip) =>
+				this.database.appMod.findFirst({
+					where,
+					skip,
+					select: {
+						mod: {
+							omit: { htmlDescription: true },
+							include: {
+								versions: true,
+								translations: {
+									where: { language: { code: languageCode } }
+								},
+								_count: { select: { apps: true, reactions: true } }
+							}
+						}
+					}
+				})
+			)
+		);
+
+		return appMods.flatMap((appMod) => (appMod ? [appMod.mod as unknown as ModWithVersions] : []));
+	}
+
+	async getTrendingPosition(appId: number, modId: number): Promise<number | null> {
+		const appMod = await this.database.appMod.findUnique({
+			where: { appId_modId: { appId, modId } },
+			select: { id: true, order: true }
+		});
+		if (!appMod) return null;
+
+		const before = await this.database.appMod.count({
+			where: {
+				appId,
+				OR: [{ order: { lt: appMod.order } }, { order: appMod.order, id: { lt: appMod.id } }]
+			}
+		});
+		return before + 1;
+	}
+
+	async getReactionSummary(
+		modId: number,
+		clientUserId?: string
+	): Promise<{
+		counts: { type: ModReactionType; count: number }[];
+		selected: ModReactionType | null;
+	}> {
+		const counts = await this.database.modReaction.groupBy({
+			by: ['type'],
+			where: { modId },
+			_count: { type: true }
+		});
+		const selected = clientUserId
+			? await this.database.modReaction.findUnique({
+					where: { modId_clientUserId: { modId, clientUserId } },
+					select: { type: true }
+				})
+			: null;
+		return {
+			counts: counts.map(({ type, _count }) => ({ type, count: _count.type })),
+			selected: selected?.type ?? null
+		};
+	}
+
+	async setReaction(modId: number, clientUserId: string, reaction: ModReactionType | null): Promise<void> {
+		if (!reaction) {
+			await this.database.modReaction.deleteMany({ where: { modId, clientUserId } });
+			return;
+		}
+		await this.database.modReaction.upsert({
+			where: { modId_clientUserId: { modId, clientUserId } },
+			update: { type: reaction },
+			create: { modId, clientUserId, type: reaction }
+		});
+	}
+
+	async getDownloads(modId: number): Promise<{
+		total: number;
+		apps: { appId: number; packageName: string; name: string; downloadsCount: number }[];
+	}> {
+		const apps = await this.database.appMod.findMany({
+			where: { modId },
+			select: {
+				appId: true,
+				downloadsCount: true,
+				app: {
+					select: {
+						packageName: true,
+						translations: { select: { name: true }, take: 1 }
+					}
+				}
+			},
+			orderBy: { downloadsCount: 'desc' }
+		});
+
+		return {
+			total: apps.reduce((sum, app) => sum + app.downloadsCount, 0),
+			apps: apps.map(({ appId, app, downloadsCount }) => ({
+				appId,
+				packageName: app.packageName,
+				name: app.translations[0]?.name ?? app.packageName,
+				downloadsCount
+			}))
+		};
 	}
 
 	async delete(id: number): Promise<Mod> {

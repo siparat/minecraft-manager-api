@@ -48,9 +48,10 @@ import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
 import { FileService } from 'src/file/file.service';
 import { AndroidBundleValidator } from './validators/android-bundle.validator';
 import { ModSearchResponse } from 'src/mod/interfaces/mod-search-response.interface';
+import { ModSearchItem } from 'src/mod/interfaces/mod-search-response.interface';
 import { ModSortKeys } from 'src/mod/interfaces/mod-sort.interface';
 import { ModRepository } from 'src/mod/repositories/mod.repository';
-import { ApiBody, ApiHeader, ApiOperation, ApiParam, ApiQuery, ApiTags } from '@nestjs/swagger';
+import { ApiBody, ApiHeader, ApiOkResponse, ApiOperation, ApiParam, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { UserInfo } from 'src/decorators/user-info.decorator';
 import { ModCategory } from 'minecraft-manager-schemas';
 import { FilterOperation } from 'src/common/types/filter-operations';
@@ -219,6 +220,34 @@ export class AppsController {
 	}
 
 	@ApiTags('for-builders')
+	@ApiOperation({ summary: 'Получить мод дня' })
+	@ApiParam({ name: 'appId', type: Number, description: 'ID приложения' })
+	@ApiHeader({ name: 'Language', required: false, description: 'Код языка' })
+	@ApiOkResponse({ schema: { example: { id: 1, title: 'Mod of day' } } })
+	@Get(':appId/mod/day')
+	async getModOfDay(
+		@Param('appId', ParseIntPipe) appId: number,
+		@Headers('Language') language?: string
+	): Promise<ModSearchItem> {
+		return this.appsService.getModOfDay(appId, language);
+	}
+
+	@ApiTags('for-builders')
+	@ApiOperation({ summary: 'Получить новинки приложения' })
+	@ApiParam({ name: 'appId', type: Number, description: 'ID приложения' })
+	@ApiQuery({ name: 'take', type: Number, required: false, description: 'Сколько модов вернуть, по умолчанию 10' })
+	@ApiHeader({ name: 'Language', required: false, description: 'Код языка' })
+	@ApiOkResponse({ schema: { example: { count: 1, mods: [{ id: 1, title: 'New mod' }] } } })
+	@Get(':appId/mod/new')
+	async getNewMods(
+		@Param('appId', ParseIntPipe) appId: number,
+		@Query('take', new ParseIntPipe({ optional: true })) take: number = 10,
+		@Headers('Language') language?: string
+	): Promise<ModSearchResponse> {
+		return this.appsService.getNewMods(appId, Math.max(0, take), language);
+	}
+
+	@ApiTags('for-builders')
 	@ApiOperation({
 		summary: 'Поиск модов у приложения',
 		description: 'Позволяет искать моды у конкретного приложения с фильтрацией, сортировкой и пагинацией.'
@@ -379,6 +408,20 @@ export class AppsController {
 			throw new NotFoundException(AppsErrorMessages.NOT_FOUND);
 		}
 		await this.appsRepository.setModsOrder(appId, order);
+	}
+
+	@HttpCode(HttpStatus.OK)
+	@ApiTags('for-builders')
+	@ApiOperation({ summary: 'Зафиксировать установку мода из приложения' })
+	@ApiParam({ name: 'appId', type: Number, description: 'ID приложения' })
+	@ApiParam({ name: 'modId', type: Number, description: 'ID мода' })
+	@ApiOkResponse({ schema: { example: { downloadsCount: 42 } } })
+	@Post(':appId/mod/:modId/download')
+	async incrementModDownloads(
+		@Param('appId', ParseIntPipe) appId: number,
+		@Param('modId', ParseIntPipe) modId: number
+	): Promise<{ downloadsCount: number }> {
+		return this.appsService.incrementModDownloads(appId, modId);
 	}
 
 	@HttpCode(HttpStatus.OK)

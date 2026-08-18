@@ -12,4 +12,4 @@ export type IModEntity = PartialFields<
 	| 'htmlDescription'
 	| 'commentCounts'
 	| 'rating'
->;
+> & { reactionsCount?: number; similarMods?: IModEntity[]; trendingPosition?: number | null };

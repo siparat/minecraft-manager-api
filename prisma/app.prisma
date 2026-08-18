@@ -18,12 +18,14 @@ model App {
 }
 
 model AppMod {
-    id    Int @id @default(autoincrement())
-    app   App @relation(fields: [appId], references: [id], onDelete: Cascade)
-    appId Int
-    mod   Mod @relation(fields: [modId], references: [id], onDelete: Cascade)
-    modId Int
-    order Int @default(0)
+    id             Int @id @default(autoincrement())
+    app            App @relation(fields: [appId], references: [id], onDelete: Cascade)
+    appId          Int
+    mod            Mod @relation(fields: [modId], references: [id], onDelete: Cascade)
+    modId          Int
+    order          Int @default(0)
+    createdAt      DateTime @default(now())
+    downloadsCount Int @default(0)
 
     @@unique([appId, modId])
 }

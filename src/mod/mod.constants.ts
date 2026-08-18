@@ -2,7 +2,10 @@ import { ModSort } from './interfaces/mod-sort.interface';
 import { Prisma } from 'generated/prisma';
 
 export const ModErrorMessages = {
-	NOT_FOUND: 'Мод с таким идентификатором не найден'
+	NOT_FOUND: 'Мод с таким идентификатором не найден',
+	CLIENT_USER_ID_REQUIRED: 'Идентификатор пользователя обязателен',
+	REACTION_REQUIRED: 'Реакция обязательна',
+	UNKNOWN_REACTION: 'Неизвестная реакция'
 };
 
 export const ModSorts: Record<ModSort['key'], (sort: Prisma.SortOrder) => Prisma.AppModOrderByWithRelationInput> = {
