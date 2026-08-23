@@ -50,7 +50,7 @@ import { AndroidBundleValidator } from './validators/android-bundle.validator';
 import { ModSearchResponse } from 'src/mod/interfaces/mod-search-response.interface';
 import { ModSortKeys } from 'src/mod/interfaces/mod-sort.interface';
 import { ModRepository } from 'src/mod/repositories/mod.repository';
-import { ApiBody, ApiHeader, ApiOperation, ApiParam, ApiQuery, ApiTags } from '@nestjs/swagger';
+import { ApiBody, ApiHeader, ApiOkResponse, ApiOperation, ApiParam, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { UserInfo } from 'src/decorators/user-info.decorator';
 import { ModCategory } from 'minecraft-manager-schemas';
 import { FilterOperation } from 'src/common/types/filter-operations';
@@ -373,6 +373,7 @@ export class AppsController {
 		required: false,
 		description: 'Код языка'
 	})
+	@ApiOkResponse({ schema: { example: { count: 1, mods: [{ id: 1, title: 'Mod', trendingPosition: 3 }] } } })
 	@Get(':appId/mod/:status')
 	async searchModsFromApp(
 		@Param('appId', ParseIntPipe) appId: number,

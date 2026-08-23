@@ -1,4 +1,4 @@
-import { App, AppSdk, AppTranslation, Language } from 'generated/prisma';
+import { App, AppAd, AppSdk, AppTranslation, Language } from 'generated/prisma';
 
 export const AppModStatus = ['actived', 'inactived'] as const;
 
@@ -8,5 +8,6 @@ export interface AppWithTranslations extends App {
 
 export interface AppFullInfo extends AppWithTranslations {
 	sdk: AppSdk | null;
+	ads: AppAd[];
 	_count: Record<string, number>;
 }
