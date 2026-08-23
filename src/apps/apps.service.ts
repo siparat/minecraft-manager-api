@@ -13,7 +13,7 @@ import { CreateAppDto } from './dto/create-app.dto';
 import { AppsErrorMessages } from './apps.constants';
 import { AppTranslationEntity } from './entities/app-translation.entity';
 import { AppsRepository } from './repositories/apps.repository';
-import { AppStatus, AppTranslation, IssueStatus } from 'generated/prisma';
+import { AppAd, AppStatus, AppTranslation, IssueStatus } from 'generated/prisma';
 import { UpdateAppDto } from './dto/update-app.dto';
 import { AppWithTranslations } from './interfaces/app.interface';
 import { AppIssueEntity } from './entities/app-issue.entity';
@@ -30,6 +30,7 @@ import { Telegraf } from 'telegraf';
 import { ConfigService } from '@nestjs/config';
 import { RecommendModDto } from './dto/recommend-mod.dto';
 import { ParserService } from 'src/parser/parser.service';
+import { AppAdDto } from './dto/app-ad.dto';
 
 @Injectable()
 export class AppsService {
@@ -334,6 +335,61 @@ export class AppsService {
 		};
 	}
 
+	async getAds(appId: number): Promise<AppAdDto[]> {
+		await this.assertAppExists(appId);
+		return this.appsRepository.getAds(appId);
+	}
+
+	async getAd(appId: number, adId: string): Promise<Pick<AppAdDto, 'label' | 'isEnabled'>> {
+		const ad = await this.appsRepository.getAd(appId, adId);
+		if (!ad) {
+			throw new NotFoundException(AppsErrorMessages.AD_NOT_FOUND);
+		}
+		return { label: ad.label, isEnabled: ad.isEnabled };
+	}
+
+	async createAd(appId: number, dto: AppAd): Promise<AppAdDto> {
+		await this.assertAppExists(appId);
+		const normalizeAddDto = this.normalizeAd(dto);
+		this.validateAd(normalizeAddDto);
+		if (await this.appsRepository.getAd(appId, normalizeAddDto.adId)) {
+			throw new ConflictException(AppsErrorMessages.AD_ALREADY_EXISTS);
+		}
+		return this.appsRepository.createAd(appId, normalizeAddDto);
+	}
+
+	async updateAd(appId: number, adId: string, dto: Partial<Pick<AppAdDto, 'label' | 'isEnabled'>>): Promise<AppAdDto> {
+		await this.assertAdExists(appId, adId);
+		if (dto.label !== undefined) {
+			dto.label = dto.label.trim();
+		}
+		if (dto.label !== undefined && !dto.label) {
+			throw new BadRequestException(AppsErrorMessages.AD_BAD_PAYLOAD);
+		}
+		return this.appsRepository.updateAd(appId, adId, dto);
+	}
+
+	async deleteAd(appId: number, adId: string): Promise<void> {
+		await this.assertAdExists(appId, adId);
+		await this.appsRepository.deleteAd(appId, adId);
+	}
+
+	async importAds(appId: number, ads: AppAd[]): Promise<{ count: number }> {
+		await this.assertAppExists(appId);
+		const normalizeAddDto = Array.isArray(ads) ? ads.map((ad) => this.normalizeAd(ad)) : ads;
+		if (!Array.isArray(normalizeAddDto) || normalizeAddDto.some((ad) => !this.adIsValid(ad))) {
+			throw new BadRequestException(AppsErrorMessages.AD_BAD_PAYLOAD);
+		}
+		const ids = normalizeAddDto.map(({ adId }) => adId);
+		if (
+			new Set(ids).size !== ids.length ||
+			(await this.appsRepository.getAds(appId)).some((ad) => ids.includes(ad.adId))
+		) {
+			throw new ConflictException(AppsErrorMessages.AD_IMPORT_COLLISION);
+		}
+		return this.appsRepository.createAds(appId, normalizeAddDto);
+	}
+
 	private async validateTranslations(translations: Pick<AppTranslation, 'languageId' | 'name'>[]): Promise<boolean> {
 		const languages = await this.languageRepository.getAllLanguages();
 		const missingTranslations = languages.filter((l) => !translations.some((t) => t.languageId == l.id));
@@ -341,5 +397,32 @@ export class AppsService {
 			return false;
 		}
 		return true;
+	}
+
+	private async assertAppExists(appId: number): Promise<void> {
+		if (!(await this.appsRepository.findById(appId))) {
+			throw new NotFoundException(AppsErrorMessages.NOT_FOUND);
+		}
+	}
+
+	private async assertAdExists(appId: number, adId: string): Promise<void> {
+		await this.assertAppExists(appId);
+		if (!(await this.appsRepository.getAd(appId, adId))) {
+			throw new NotFoundException(AppsErrorMessages.AD_NOT_FOUND);
+		}
+	}
+
+	private validateAd(ad: AppAdDto): void {
+		if (!this.adIsValid(ad)) {
+			throw new BadRequestException(AppsErrorMessages.AD_BAD_PAYLOAD);
+		}
+	}
+
+	private adIsValid(ad: AppAdDto): boolean {
+		return !!ad?.adId?.trim() && !!ad?.label?.trim() && typeof ad.isEnabled === 'boolean';
+	}
+
+	private normalizeAd({ id, createdAt, updatedAt, ...ad }: AppAd): AppAdDto {
+		return { ...ad, adId: ad?.adId?.trim(), label: ad?.label?.trim() };
 	}
 }

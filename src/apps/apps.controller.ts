@@ -26,7 +26,7 @@ import {
 	UseInterceptors,
 	UsePipes
 } from '@nestjs/common';
-import { App, AppIssue, AppStatus, IssueStatus, Language, Mod, Prisma, User, UserRole } from 'generated/prisma';
+import { App, AppAd, AppIssue, AppStatus, IssueStatus, Language, Mod, Prisma, User, UserRole } from 'generated/prisma';
 import { ZodValidationPipe } from 'nestjs-zod';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { RoleGuard } from 'src/user/guards/role.guard';
@@ -58,6 +58,7 @@ import { FilterOperation } from 'src/common/types/filter-operations';
 import { SetOrderDto } from './dto/set-order.dto';
 import { ModEntity } from 'src/mod/entities/mod.entity';
 import { RecommendModDto } from './dto/recommend-mod.dto';
+import { AppAdDto } from './dto/app-ad.dto';
 
 @Controller('apps')
 export class AppsController {
@@ -166,6 +167,74 @@ export class AppsController {
 		}
 
 		return this.appIssueRepository.getCounts(appId);
+	}
+
+	@Get(':appId/ads')
+	async getAds(@Param('appId', ParseIntPipe) appId: number): Promise<AppAdDto[]> {
+		return this.appsService.getAds(appId);
+	}
+
+	@UseGuards(JwtAuthGuard)
+	@Get(':appId/ads/export')
+	async exportAds(@Param('appId', ParseIntPipe) appId: number): Promise<AppAdDto[]> {
+		return this.appsService.getAds(appId);
+	}
+
+	@UseGuards(JwtAuthGuard)
+	@ApiBody({
+		schema: {
+			example: [
+				{ adId: 'inter_main', label: 'Main interstitial', isEnabled: true },
+				{ adId: 'native_list', label: 'Native in list', isEnabled: false }
+			]
+		}
+	})
+	@Post(':appId/ads/import')
+	async importAds(@Param('appId', ParseIntPipe) appId: number, @Body() ads: AppAd[]): Promise<{ count: number }> {
+		return this.appsService.importAds(appId, ads);
+	}
+
+	@ApiTags('for-builders')
+	@ApiOperation({ summary: 'Получить рекламу приложения по ID' })
+	@ApiOkResponse({ schema: { example: { label: 'inter_main', isEnabled: true } } })
+	@Get(':appId/ads/:adId')
+	async getAd(
+		@Param('appId', ParseIntPipe) appId: number,
+		@Param('adId') adId: string
+	): Promise<Pick<AppAdDto, 'label' | 'isEnabled'>> {
+		return this.appsService.getAd(appId, adId);
+	}
+
+	@UseGuards(JwtAuthGuard)
+	@ApiBody({
+		schema: {
+			example: { adId: 'inter_main', label: 'Main interstitial', isEnabled: true }
+		}
+	})
+	@Post(':appId/ads')
+	async createAd(@Param('appId', ParseIntPipe) appId: number, @Body() dto: AppAd): Promise<AppAdDto> {
+		return this.appsService.createAd(appId, dto);
+	}
+
+	@UseGuards(JwtAuthGuard)
+	@ApiBody({
+		schema: {
+			example: { label: 'Main interstitial', isEnabled: false }
+		}
+	})
+	@Put(':appId/ads/:adId')
+	async updateAd(
+		@Param('appId', ParseIntPipe) appId: number,
+		@Param('adId') adId: string,
+		@Body() dto: Partial<Pick<AppAdDto, 'label' | 'isEnabled'>>
+	): Promise<AppAdDto> {
+		return this.appsService.updateAd(appId, adId, dto);
+	}
+
+	@UseGuards(JwtAuthGuard)
+	@Delete(':appId/ads/:adId')
+	async deleteAd(@Param('appId', ParseIntPipe) appId: number, @Param('adId') adId: string): Promise<void> {
+		return this.appsService.deleteAd(appId, adId);
 	}
 
 	@HttpCode(HttpStatus.OK)
