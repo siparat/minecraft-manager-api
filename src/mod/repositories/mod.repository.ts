@@ -122,11 +122,14 @@ export class ModRepository {
 			const count = await this.database.appMod.count({ where });
 			return {
 				count,
-				mods: mods.map((m) => ({
-					...m,
-					reactionsCount: m._count.reactions,
-					apps: m.apps.map(({ appId }) => ({ id: appId }))
-				}))
+				mods: await Promise.all(
+					mods.map(async (m) => ({
+						...m,
+						reactionsCount: m._count.reactions,
+						trendingPosition: isActive ? await this.getTrendingPosition(appId, m.id) : null,
+						apps: m.apps.map(({ appId }) => ({ id: appId }))
+					}))
+				)
 			};
 		}
 		const where: Prisma.ModWhereInput = {
@@ -156,11 +159,14 @@ export class ModRepository {
 
 		return {
 			count,
-			mods: mods.map((m) => ({
-				...m,
-				reactionsCount: m._count.reactions,
-				apps: m.apps.map(({ appId }) => ({ id: appId }))
-			}))
+			mods: await Promise.all(
+				mods.map(async (m) => ({
+					...m,
+					reactionsCount: m._count.reactions,
+					trendingPosition: isActive ? await this.getTrendingPosition(appId, m.id) : null,
+					apps: m.apps.map(({ appId }) => ({ id: appId }))
+				}))
+			)
 		};
 	}
 

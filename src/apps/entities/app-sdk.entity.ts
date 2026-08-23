@@ -26,6 +26,7 @@ export class AppSdkEntity implements IAppSdkEntity {
 	chanceShowNativeAds?: number;
 	chanceShowOpenAds?: number;
 	countNativePreload?: number;
+	skipBeforeFirstInterAdsCount?: number;
 	adsInverval?: number;
 
 	constructor(sdk: IAppSdkEntity) {

@@ -52,6 +52,7 @@ model AppSdk {
     appLovinToken      String?
     adMobToken         String?
     delayInter         Int     @default(120)
+    skipBeforeFirstInterAdsCount Int @default(0)
 
     adsNativeType      AdsNativeType @default(NATIVE)
     countNativePreload Int           @default(5)

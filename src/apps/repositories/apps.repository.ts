@@ -89,6 +89,7 @@ export class AppsRepository {
 			where: { id },
 			include: {
 				sdk: true,
+				ads: { orderBy: { id: 'asc' } },
 				translations: { select: { name: true, language: true } },
 				_count: { select: { mods: true } }
 			}

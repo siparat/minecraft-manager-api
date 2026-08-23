@@ -402,6 +402,7 @@ export class AppsController {
 		required: false,
 		description: 'Код языка'
 	})
+	@ApiOkResponse({ schema: { example: { count: 1, mods: [{ id: 1, title: 'Mod', trendingPosition: 3 }] } } })
 	@Get(':appId/mod/:status')
 	async searchModsFromApp(
 		@Param('appId', ParseIntPipe) appId: number,
