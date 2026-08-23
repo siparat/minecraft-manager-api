@@ -15,6 +15,7 @@ model App {
     mods           AppMod[]
     issues         AppIssue[]
     sdk            AppSdk?
+    ads            AppAd[]
 }
 
 model AppMod {
@@ -72,6 +73,19 @@ model AppSdk {
     chanceShowOpenAds   Int @default(100)
     chanceShowInterAds  Int @default(100)
     chanceShowNativeAds Int @default(100)
+}
+
+model AppAd {
+    id        Int      @id @default(autoincrement())
+    app       App      @relation(fields: [appId], references: [id], onDelete: Cascade)
+    appId     Int
+    adId      String
+    label     String
+    isEnabled Boolean  @default(true)
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    @@unique([appId, adId])
 }
 
 model Language {

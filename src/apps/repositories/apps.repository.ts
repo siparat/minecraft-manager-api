@@ -1,5 +1,9 @@
 import { Injectable, InternalServerErrorException, Logger } from '@nestjs/common';
+<<<<<<< HEAD
 import { App, AppTranslation, Mod } from 'generated/prisma';
+=======
+import { App, AppAd, AppMod, AppTranslation, Mod, ModTranslation, ModVersion } from 'generated/prisma';
+>>>>>>> 4d29bee (feat: add ads app module)
 import { DatabaseService } from 'src/database/database.service';
 import { AppEntity } from '../entities/app.entity';
 import { AppFullInfo, AppWithTranslations } from '../interfaces/app.interface';
@@ -174,5 +178,88 @@ export class AppsRepository {
 			orderBy: { id: 'asc' },
 			skip
 		});
+	}
+
+	async getTopModsFromApp(
+		appId: number,
+		language?: string
+	): Promise<
+		(Omit<Mod, 'htmlDescription'> & {
+			versions: ModVersion[];
+			translations: ModTranslation[];
+			_count: { apps: number; reactions: number };
+		})[]
+	> {
+		const appMods = await this.database.appMod.findMany({
+			where: { appId },
+			take: 5,
+			orderBy: { order: 'asc' },
+			select: {
+				mod: {
+					omit: { htmlDescription: true },
+					include: {
+						versions: true,
+						translations: language ? { where: { language: { code: language } } } : true,
+						_count: { select: { apps: true, reactions: true } }
+					}
+				}
+			}
+		});
+
+		return appMods.map(({ mod }) => mod);
+	}
+
+	async getNewModsFromApp(
+		appId: number,
+		take: number,
+		language?: string
+	): Promise<
+		(Omit<Mod, 'htmlDescription'> & {
+			versions: ModVersion[];
+			translations: ModTranslation[];
+			_count: { apps: number; reactions: number };
+		})[]
+	> {
+		const appMods = await this.database.appMod.findMany({
+			where: { appId },
+			take,
+			orderBy: { createdAt: 'desc' },
+			select: {
+				mod: {
+					omit: { htmlDescription: true },
+					include: {
+						versions: true,
+						translations: language ? { where: { language: { code: language } } } : true,
+						_count: { select: { apps: true, reactions: true } }
+					}
+				}
+			}
+		});
+
+		return appMods.map(({ mod }) => mod);
+	}
+
+	getAds(appId: number): Promise<AppAd[]> {
+		return this.database.appAd.findMany({ where: { appId }, orderBy: { id: 'asc' } });
+	}
+
+	getAd(appId: number, adId: string): Promise<AppAd | null> {
+		return this.database.appAd.findUnique({ where: { appId_adId: { appId, adId } } });
+	}
+
+	createAd(appId: number, data: Pick<AppAd, 'adId' | 'label' | 'isEnabled'>): Promise<AppAd> {
+		return this.database.appAd.create({ data: { ...data, appId } });
+	}
+
+	updateAd(appId: number, adId: string, data: Partial<Pick<AppAd, 'label' | 'isEnabled'>>): Promise<AppAd> {
+		return this.database.appAd.update({ where: { appId_adId: { appId, adId } }, data });
+	}
+
+	deleteAd(appId: number, adId: string): Promise<AppAd> {
+		return this.database.appAd.delete({ where: { appId_adId: { appId, adId } } });
+	}
+
+	createAds(appId: number, ads: Pick<AppAd, 'adId' | 'label' | 'isEnabled'>[]): Promise<{ count: number }> {
+		return this.database.appAd.createMany({ data: ads.map((ad) => ({ ...ad, appId })) });
 	}
 }
