@@ -7,6 +7,8 @@ export class AppSdkEntity implements IAppSdkEntity {
 	isNativeAdsEnabled?: boolean;
 	appId?: number;
 	metricaToken?: string;
+	tgRu?: string | null;
+	tgOther?: string | null;
 	appLovinToken?: string;
 	adMobToken?: string;
 	firstOpenCode?: string;
