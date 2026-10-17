@@ -228,7 +228,7 @@ export class ModRepository {
 		return mods.map(({ parsedSlug }) => parsedSlug);
 	}
 
-	async create({ translations, ...modEntity }: ModEntity): Promise<Mod> {
+	async create({ translations, reactionsCount, similarMods, trendingPosition, ...modEntity }: ModEntity): Promise<Mod> {
 		try {
 			return await this.database.mod.create({
 				data: {
@@ -248,12 +248,16 @@ export class ModRepository {
 		}
 	}
 
-	async update(id: number, { translations, ...modEntity }: ModEntity): Promise<Mod> {
+	async update(
+		id: number,
+		{ translations, reactionsCount, similarMods, trendingPosition, ...modEntity }: ModEntity
+	): Promise<Mod> {
 		try {
+			const { id: _id, ...modData } = modEntity;
 			return await this.database.mod.update({
 				where: { id },
 				data: {
-					...modEntity,
+					...modData,
 					versions:
 						modEntity.versions && modEntity.versions.length
 							? {
