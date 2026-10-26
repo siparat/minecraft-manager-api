@@ -29,7 +29,8 @@ import {
 import { App, AppAd, AppIssue, AppStatus, IssueStatus, Language, Mod, Prisma, User, UserRole } from 'generated/prisma';
 import { ZodValidationPipe } from 'nestjs-zod';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
-import { RoleGuard } from 'src/user/guards/role.guard';
+import { ExcludeRoleGuard, RoleGuard } from 'src/user/guards/role.guard';
+import { assertManagerOwnsResource } from 'src/user/utils/assert-manager-owns-resource.util';
 import { CreateAppDto } from './dto/create-app.dto';
 import { AppEntity } from './entities/app.entity';
 import { AppsService } from './apps.service';
@@ -91,16 +92,16 @@ export class AppsController {
 		return app;
 	}
 
-	@UseGuards(JwtAuthGuard, new RoleGuard([UserRole.ADMIN]))
+	@UseGuards(JwtAuthGuard, new RoleGuard([UserRole.ADMIN, UserRole.MANAGER]))
 	@UsePipes(ZodValidationPipe)
 	@Post()
 	async createApp(@Body() dto: CreateAppDto, @UserInfo() user: User): Promise<AppEntity> {
-		const app = await this.appsService.createApp(dto);
+		const app = await this.appsService.createApp(dto, user.id);
 		Logger.log(`[${user.username}] Создано новое приложение ${app.id}`);
 		return app;
 	}
 
-	@UseGuards(JwtAuthGuard, new RoleGuard([UserRole.ADMIN]))
+	@UseGuards(JwtAuthGuard, new RoleGuard([UserRole.ADMIN, UserRole.MANAGER]))
 	@UsePipes(ZodValidationPipe)
 	@Put(':id')
 	async updateApp(
@@ -108,15 +109,15 @@ export class AppsController {
 		@Body() dto: UpdateAppDto,
 		@UserInfo() user: User
 	): Promise<AppEntity> {
-		const app = await this.appsService.updateApp(id, dto);
+		const app = await this.appsService.updateApp(id, dto, user);
 		Logger.log(`[${user.username}] Приложение ${app.id} отредактировано`);
 		return app;
 	}
 
-	@UseGuards(JwtAuthGuard, new RoleGuard([UserRole.ADMIN]))
+	@UseGuards(JwtAuthGuard, new RoleGuard([UserRole.ADMIN, UserRole.MANAGER]))
 	@Delete(':id')
 	async deleteApp(@Param('id', ParseIntPipe) appId: number, @UserInfo() user: User): Promise<void> {
-		const app = await this.appsService.deleteApp(appId);
+		const app = await this.appsService.deleteApp(appId, user);
 		Logger.log(`[${user.username}] Приложение с id ${appId} было удалено`);
 		return app;
 	}
@@ -173,13 +174,13 @@ export class AppsController {
 		return this.appsService.getAds(appId);
 	}
 
-	@UseGuards(JwtAuthGuard)
+	@UseGuards(JwtAuthGuard, new ExcludeRoleGuard([UserRole.MANAGER]))
 	@Get(':appId/ads/export')
 	async exportAds(@Param('appId', ParseIntPipe) appId: number): Promise<AppAdDto[]> {
 		return this.appsService.getAds(appId);
 	}
 
-	@UseGuards(JwtAuthGuard)
+	@UseGuards(JwtAuthGuard, new ExcludeRoleGuard([UserRole.MANAGER]))
 	@ApiBody({
 		schema: {
 			example: [
@@ -204,7 +205,7 @@ export class AppsController {
 		return this.appsService.getAd(appId, adId);
 	}
 
-	@UseGuards(JwtAuthGuard)
+	@UseGuards(JwtAuthGuard, new ExcludeRoleGuard([UserRole.MANAGER]))
 	@ApiBody({
 		schema: {
 			example: { adId: 'inter_main', label: 'Main interstitial', isEnabled: true }
@@ -215,7 +216,7 @@ export class AppsController {
 		return this.appsService.createAd(appId, dto);
 	}
 
-	@UseGuards(JwtAuthGuard)
+	@UseGuards(JwtAuthGuard, new ExcludeRoleGuard([UserRole.MANAGER]))
 	@ApiBody({
 		schema: {
 			example: { label: 'Main interstitial', isEnabled: false }
@@ -230,7 +231,7 @@ export class AppsController {
 		return this.appsService.updateAd(appId, adId, dto);
 	}
 
-	@UseGuards(JwtAuthGuard)
+	@UseGuards(JwtAuthGuard, new ExcludeRoleGuard([UserRole.MANAGER]))
 	@Delete(':appId/ads/:adId')
 	async deleteAd(@Param('appId', ParseIntPipe) appId: number, @Param('adId') adId: string): Promise<void> {
 		return this.appsService.deleteAd(appId, adId);
@@ -456,9 +457,10 @@ export class AppsController {
 	@Post(':appId/mod/:modId/toggle')
 	async toggleMod(
 		@Param('appId', ParseIntPipe) appId: number,
-		@Param('modId', ParseIntPipe) modId: number
+		@Param('modId', ParseIntPipe) modId: number,
+		@UserInfo() user: User
 	): Promise<AppEntity> {
-		return this.appsService.toggleModFromApp(appId, modId);
+		return this.appsService.toggleModFromApp(appId, modId, user);
 	}
 
 	@UseGuards(JwtAuthGuard, new RoleGuard([UserRole.ADMIN]))
@@ -519,7 +521,7 @@ export class AppsController {
 		@Param('status', new ParseEnumPipe(AppStatus)) status: AppStatus,
 		@UserInfo() user: User
 	): Promise<AppEntity> {
-		const app = await this.appsService.setNewStatus(appId, status);
+		const app = await this.appsService.setNewStatus(appId, status, user);
 		Logger.log(`[${user.username}] Статус приложения ${app.id} обновлён`);
 		return app;
 	}
@@ -541,6 +543,7 @@ export class AppsController {
 		if (!app) {
 			throw new NotFoundException(AppsErrorMessages.NOT_FOUND);
 		}
+		assertManagerOwnsResource(user, app.createdById);
 		const uploadedFile = await this.fileService.saveFile(file);
 		if (app.apk) {
 			const filename = app.apk.split('/').pop();
@@ -565,6 +568,7 @@ export class AppsController {
 		if (!app) {
 			throw new NotFoundException(AppsErrorMessages.NOT_FOUND);
 		}
+		assertManagerOwnsResource(user, app.createdById);
 		const uploadedFile = await this.fileService.saveFile(file);
 		if (app.firebaseFile) {
 			const filename = app.firebaseFile.split('/').pop();
@@ -593,6 +597,7 @@ export class AppsController {
 		if (!app) {
 			throw new NotFoundException(AppsErrorMessages.NOT_FOUND);
 		}
+		assertManagerOwnsResource(user, app.createdById);
 		const uploadedFile = await this.fileService.saveFile(file);
 		if (app.bundle) {
 			const filename = app.bundle.split('/').pop();
@@ -622,6 +627,7 @@ export class AppsController {
 			throw new NotFoundException(AppsErrorMessages.NOT_FOUND);
 		}
 
+		assertManagerOwnsResource(user, app.createdById);
 		const result: string[] = [];
 
 		for (const file of files) {

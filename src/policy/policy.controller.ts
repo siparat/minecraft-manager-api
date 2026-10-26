@@ -3,7 +3,9 @@ import { PolicyEntity } from './entities/policy.entity';
 import { ZodValidationPipe } from 'nestjs-zod';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { RoleGuard } from 'src/user/guards/role.guard';
-import { UserRole } from 'generated/prisma';
+import { assertManagerOwnsResource } from 'src/user/utils/assert-manager-owns-resource.util';
+import { User, UserRole } from 'generated/prisma';
+import { UserInfo } from 'src/decorators/user-info.decorator';
 import { CreatePolicyDto } from './dto/create-policy.dto';
 import { PolicyService } from './policy.service';
 import { BadPolicySlugException } from './exceptions/bad-policy-slug.exception';
@@ -53,26 +55,30 @@ export class PolicyController {
 		res.send(policy.content);
 	}
 
-	@UseGuards(JwtAuthGuard, new RoleGuard([UserRole.ADMIN]))
+	@UseGuards(JwtAuthGuard, new RoleGuard([UserRole.ADMIN, UserRole.MANAGER]))
 	@UsePipes(ZodValidationPipe)
 	@Post()
-	async create(@Body() dto: CreatePolicyDto): Promise<PolicyEntity> {
-		return this.policyService.createPolicy(dto);
+	async create(@Body() dto: CreatePolicyDto, @UserInfo() user: User): Promise<PolicyEntity> {
+		return this.policyService.createPolicy(dto, user.id);
 	}
 
-	@UseGuards(JwtAuthGuard, new RoleGuard([UserRole.ADMIN]))
+	@UseGuards(JwtAuthGuard, new RoleGuard([UserRole.ADMIN, UserRole.MANAGER]))
 	@UsePipes(ZodValidationPipe)
 	@Put(':slug')
-	async update(@Body() dto: UpdatePolicyDto, @Param('slug') slug?: string): Promise<PolicyEntity> {
+	async update(
+		@Body() dto: UpdatePolicyDto,
+		@Param('slug') slug: string | undefined,
+		@UserInfo() user: User
+	): Promise<PolicyEntity> {
 		if (!slug) {
 			throw new BadPolicySlugException();
 		}
-		return this.policyService.updatePolicy(slug, dto);
+		return this.policyService.updatePolicy(slug, dto, user);
 	}
 
-	@UseGuards(JwtAuthGuard, new RoleGuard([UserRole.ADMIN]))
+	@UseGuards(JwtAuthGuard, new RoleGuard([UserRole.ADMIN, UserRole.MANAGER]))
 	@Delete(':slug')
-	async delete(@Param('slug') slug?: string): Promise<void> {
+	async delete(@Param('slug') slug: string | undefined, @UserInfo() user: User): Promise<void> {
 		if (!slug) {
 			throw new BadPolicySlugException();
 		}
@@ -80,6 +86,7 @@ export class PolicyController {
 		if (!existedPolicy) {
 			throw new PolicyNotFoundException(slug);
 		}
+		assertManagerOwnsResource(user, existedPolicy.createdById);
 		return this.policyRepository.delete(slug);
 	}
 }

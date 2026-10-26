@@ -38,4 +38,19 @@ export class UserController {
 		Logger.log(`Создан сборщик с именем ${user.username}`);
 		return user;
 	}
+
+	@ApiOperation({ summary: 'Создание менеджера приложений' })
+	@ApiBody({
+		required: true,
+		examples: { 'Создание менеджера': { value: { username: 'username', password: 'password' } } }
+	})
+	@ApiTags('for-admin')
+	@UseGuards(JwtAuthGuard, new RoleGuard([UserRole.ADMIN]))
+	@UsePipes(ZodValidationPipe)
+	@Post('manager')
+	async createManagerAccount(@Body() dto: CreateBuilderAccountDto): Promise<UserEntity> {
+		const user = await this.userService.createManagerAccount(dto);
+		Logger.log(`Создан менеджер с именем ${user.username}`);
+		return user;
+	}
 }

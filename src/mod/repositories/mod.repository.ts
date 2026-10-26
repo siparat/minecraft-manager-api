@@ -101,7 +101,7 @@ export class ModRepository {
 								translations: language ? { where: { language: { code: language } } } : true,
 								versions: true,
 								_count: { select: { apps: true } },
-								apps: { select: { appId: true }, where: { appId } }
+								apps: { select: { appId: true, createdById: true }, where: { appId } }
 							}
 						}
 					},
@@ -111,7 +111,7 @@ export class ModRepository {
 			const count = await this.database.appMod.count({ where });
 			return {
 				count,
-				mods: mods.map((m) => ({ ...m, apps: m.apps.map(({ appId }) => ({ id: appId })) })) as unknown as Mod[]
+				mods: mods.map((m) => ({ ...m, apps: m.apps.map(({ appId, createdById }) => ({ id: appId, createdById })) })) as unknown as Mod[]
 			};
 		}
 		const where: Prisma.ModWhereInput = {
@@ -279,5 +279,11 @@ export class ModRepository {
 			Logger.error(error);
 			throw new InternalServerErrorException('Произошла непредвиденная ошибка при удалении мода');
 		}
+	}
+
+	async countAppsNotOwnedBy(modId: number, ownerId: number): Promise<number> {
+		return this.database.appMod.count({
+			where: { modId, app: { OR: [{ createdById: null }, { createdById: { not: ownerId } }] } }
+		});
 	}
 }

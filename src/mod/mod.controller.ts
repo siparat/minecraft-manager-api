@@ -94,7 +94,7 @@ export class ModController {
 	@UseGuards(JwtAuthGuard)
 	@Post()
 	async create(@Body() dto: CreateModDto, @UserInfo() user: User): Promise<ModEntity> {
-		const mod = await this.modService.create(dto);
+		const mod = await this.modService.create(dto, user.id);
 		Logger.log(`[${user.username}] Новый мод ${mod.title} создан`);
 		return mod;
 	}
@@ -107,16 +107,16 @@ export class ModController {
 		@Body() dto: UpdateModDto,
 		@UserInfo() user: User
 	): Promise<ModEntity> {
-		const mod = await this.modService.update(id, dto);
+		const mod = await this.modService.update(id, dto, user);
 		Logger.log(`[${user.username}] Мод ${mod.title} изменён`);
 		return mod;
 	}
 
-	@UseGuards(JwtAuthGuard, new RoleGuard([UserRole.ADMIN]))
+	@UseGuards(JwtAuthGuard, new RoleGuard([UserRole.ADMIN, UserRole.MANAGER]))
 	@UsePipes(ZodValidationPipe)
 	@Delete(':id')
 	async delete(@Param('id', ParseIntPipe) id: number, @UserInfo() user: User): Promise<void> {
-		await this.modService.delete(id);
+		await this.modService.delete(id, user);
 		Logger.log(`[${user.username}] Удален мод с id - ${id}`);
 	}
 

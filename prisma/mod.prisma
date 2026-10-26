@@ -16,6 +16,8 @@ model Mod {
     files             String[]
     versions          ModVersion[]
     apps              AppMod[]
+    createdById       Int?
+    createdBy         User?            @relation(fields: [createdById], references: [id], onDelete: SetNull)
 }
 
 model ModVersion {

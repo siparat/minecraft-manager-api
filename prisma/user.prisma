@@ -3,9 +3,14 @@ model User {
     username String   @unique
     password String
     role     UserRole @default(BUILDER)
+    apps     App[]
+    mods     Mod[]
+    policies Policy[]
+    appMods  AppMod[]
 }
 
 enum UserRole {
     ADMIN
+    MANAGER
     BUILDER
 }

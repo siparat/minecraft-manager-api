@@ -13,7 +13,8 @@ import { CreateAppDto } from './dto/create-app.dto';
 import { AppsErrorMessages } from './apps.constants';
 import { AppTranslationEntity } from './entities/app-translation.entity';
 import { AppsRepository } from './repositories/apps.repository';
-import { AppAd, AppStatus, AppTranslation, IssueStatus } from 'generated/prisma';
+import { AppAd, AppStatus, AppTranslation, IssueStatus, User } from 'generated/prisma';
+import { assertManagerOwnsResource } from 'src/user/utils/assert-manager-owns-resource.util';
 import { UpdateAppDto } from './dto/update-app.dto';
 import { AppWithTranslations } from './interfaces/app.interface';
 import { AppIssueEntity } from './entities/app-issue.entity';
@@ -45,7 +46,7 @@ export class AppsService {
 		@InjectBot() private bot: Telegraf
 	) {}
 
-	async createApp({ translations, ...otherDto }: CreateAppDto): Promise<AppEntity> {
+	async createApp({ translations, ...otherDto }: CreateAppDto, createdById: number): Promise<AppEntity> {
 		const translationsIsValid = await this.validateTranslations(translations);
 		if (!translationsIsValid) {
 			throw new BadRequestException(AppsErrorMessages.MISSING_TRANSLATIONS);
@@ -57,16 +58,17 @@ export class AppsService {
 		}
 
 		const translationEntities = translations.map((t) => new AppTranslationEntity(t));
-		const appEntity = new AppEntity(otherDto).setTranslations(translationEntities);
+		const appEntity = new AppEntity({ ...otherDto, createdById }).setTranslations(translationEntities);
 		const app = await this.appsRepository.create(appEntity);
 		return new AppEntity(app).setTranslations(translationEntities);
 	}
 
-	async updateApp(appId: number, { translations, ...otherDto }: UpdateAppDto): Promise<AppEntity> {
+	async updateApp(appId: number, { translations, ...otherDto }: UpdateAppDto, actor: User): Promise<AppEntity> {
 		const app = await this.appsRepository.findById(appId);
 		if (!app) {
 			throw new NotFoundException(AppsErrorMessages.NOT_FOUND);
 		}
+		assertManagerOwnsResource(actor, app.createdById);
 
 		if (otherDto.packageName) {
 			const existedApp = await this.appsRepository.findByPackageName(otherDto.packageName);
@@ -103,11 +105,12 @@ export class AppsService {
 		return this.appsRepository.createTranslationsToApp(app.id, translationsEntities);
 	}
 
-	async deleteApp(appId: number): Promise<void> {
+	async deleteApp(appId: number, actor: User): Promise<void> {
 		const app = await this.appsRepository.findById(appId);
 		if (!app) {
 			throw new NotFoundException(AppsErrorMessages.NOT_FOUND);
 		}
+		assertManagerOwnsResource(actor, app.createdById);
 
 		await this.appsRepository.deleteById(appId);
 	}
@@ -229,18 +232,19 @@ export class AppsService {
 		return new AppSdkEntity(updatedSdk);
 	}
 
-	async setNewStatus(appId: number, status: AppStatus): Promise<AppEntity> {
+	async setNewStatus(appId: number, status: AppStatus, actor: User): Promise<AppEntity> {
 		const app = await this.appsRepository.findById(appId);
 		if (!app) {
 			throw new NotFoundException(AppsErrorMessages.NOT_FOUND);
 		}
+		assertManagerOwnsResource(actor, app.createdById);
 
 		const appEntity = new AppEntity({ ...app, status });
 		await this.appsRepository.update(appId, appEntity);
 		return appEntity;
 	}
 
-	async toggleModFromApp(appId: number, modId: number): Promise<AppEntity> {
+	async toggleModFromApp(appId: number, modId: number, actor: User): Promise<AppEntity> {
 		const app = await this.appsRepository.findById(appId);
 		if (!app) {
 			throw new NotFoundException(AppsErrorMessages.NOT_FOUND);
@@ -260,7 +264,7 @@ export class AppsService {
 			})
 			.catch((e) => Logger.error(e));
 
-		const updatedApp = await this.appsRepository.toggleModFromApp(appId, modId);
+		const updatedApp = await this.appsRepository.toggleModFromApp(appId, modId, actor.id);
 		if (!mod.translations.length) {
 			try {
 				await this.modService.translateDescription(modId);

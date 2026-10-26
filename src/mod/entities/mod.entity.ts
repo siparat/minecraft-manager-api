@@ -19,9 +19,11 @@ export class ModEntity implements IModEntity {
 	files: string[];
 	versions: ModVersion[];
 	translations: ModTranslationEntity[];
+	createdById?: number | null;
 
 	constructor(mod: IModEntity) {
 		this.id = mod.id;
+		this.createdById = mod.createdById;
 		this.createdAt = mod.createdAt;
 		this.updatedAt = mod.updatedAt;
 		this.title = mod.title;

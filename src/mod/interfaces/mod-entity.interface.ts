@@ -12,4 +12,5 @@ export type IModEntity = PartialFields<
 	| 'htmlDescription'
 	| 'commentCounts'
 	| 'rating'
+	| 'createdById'
 >;

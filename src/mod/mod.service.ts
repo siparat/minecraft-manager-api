@@ -1,4 +1,4 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { ModEntity } from './entities/mod.entity';
 import { CreateModDto } from './dto/create-mod.dto';
 import { ModRepository } from './repositories/mod.repository';
@@ -7,8 +7,9 @@ import { ModErrorMessages } from './mod.constants';
 import { ModTranslationEntity } from './entities/mod-translation.entity';
 import { DeeplGateway } from 'src/integrations/deepl/deepl.gateway';
 import { ConfigService } from '@nestjs/config';
-import { Mod } from 'generated/prisma';
+import { Mod, User, UserRole } from 'generated/prisma';
 import { ParserService } from 'src/parser/parser.service';
+import { assertManagerOwnsResource } from 'src/user/utils/assert-manager-owns-resource.util';
 
 @Injectable()
 export class ModService {
@@ -46,17 +47,20 @@ export class ModService {
 		}
 	}
 
-	async create(dto: CreateModDto, isParsed: boolean = false): Promise<ModEntity> {
-		const modEntity = new ModEntity({ ...dto, isParsed }).setVersions(dto.versions.map((version) => ({ version })));
+	async create(dto: CreateModDto, createdById: number, isParsed: boolean = false): Promise<ModEntity> {
+		const modEntity = new ModEntity({ ...dto, isParsed, createdById }).setVersions(
+			dto.versions.map((version) => ({ version }))
+		);
 		const mod = await this.modRepository.create(modEntity);
 		return new ModEntity(mod).setVersions(modEntity.versions);
 	}
 
-	async update(id: number, dto: UpdateModDto): Promise<ModEntity> {
+	async update(id: number, dto: UpdateModDto, actor: User): Promise<ModEntity> {
 		const mod = await this.modRepository.findById(id);
 		if (!mod) {
 			throw new NotFoundException(ModErrorMessages.NOT_FOUND);
 		}
+		assertManagerOwnsResource(actor, mod.createdById);
 		const descriptionChanged = dto.description !== undefined && dto.description !== mod.description;
 
 		const modEntity = new ModEntity({ ...mod, ...dto }).setVersions(
@@ -70,10 +74,16 @@ export class ModService {
 		return new ModEntity(updatedMod).setVersions(modEntity.versions);
 	}
 
-	async delete(id: number): Promise<void> {
+	async delete(id: number, actor: User): Promise<void> {
 		const mod = await this.modRepository.findById(id);
 		if (!mod) {
 			throw new NotFoundException(ModErrorMessages.NOT_FOUND);
+		}
+		assertManagerOwnsResource(actor, mod.createdById);
+		// Удаление мода каскадно убирает его из всех приложений, поэтому менеджер не может удалить мод,
+		// который стоит в чужих приложениях
+		if (actor.role === UserRole.MANAGER && (await this.modRepository.countAppsNotOwnedBy(id, actor.id))) {
+			throw new ForbiddenException(ModErrorMessages.USED_IN_FOREIGN_APPS);
 		}
 
 		await this.modRepository.delete(id);

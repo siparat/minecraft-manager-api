@@ -8,13 +8,22 @@ export class PolicyEntity {
 		public updatedAt: Date | undefined,
 		public title: string,
 		public content: string,
-		public slug: string
+		public slug: string,
+		public createdById?: number | null
 	) {}
 
-	static createFromDto(dto: CreatePolicyDto): PolicyEntity {
-		return new PolicyEntity(undefined, undefined, undefined, dto.title, dto.content, dto.slug);
+	static createFromDto(dto: CreatePolicyDto, createdById?: number): PolicyEntity {
+		return new PolicyEntity(undefined, undefined, undefined, dto.title, dto.content, dto.slug, createdById);
 	}
 	static createFromModel(model: Policy): PolicyEntity {
-		return new PolicyEntity(model.id, model.createdAt, model.updatedAt, model.title, model.content, model.slug);
+		return new PolicyEntity(
+			model.id,
+			model.createdAt,
+			model.updatedAt,
+			model.title,
+			model.content,
+			model.slug,
+			model.createdById
+		);
 	}
 }

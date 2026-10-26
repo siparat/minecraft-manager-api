@@ -16,9 +16,11 @@ export class AppEntity implements IAppEntity {
 	banner?: string | null;
 	translations: AppTranslationEntity[];
 	appScreenshots: string[];
+	createdById?: number | null;
 
 	constructor(app: IAppEntity) {
 		this.id = app.id;
+		this.createdById = app.createdById;
 		this.order = app.order || undefined;
 		this.createdAt = app.createdAt;
 		this.updatedAt = app.updatedAt;
