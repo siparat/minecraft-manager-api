@@ -18,3 +18,18 @@ export class RoleGuard implements CanActivate {
 		return true;
 	}
 }
+
+export class ExcludeRoleGuard implements CanActivate {
+	constructor(private roles: UserRole[]) {}
+
+	canActivate(context: ExecutionContext): boolean {
+		const req = context.switchToHttp().getRequest<Request>();
+		if (!req.user) {
+			throw new UnauthorizedException(AuthErrorMessages.UNAUTHORIZED);
+		}
+		if (this.roles.includes(req.user.role)) {
+			throw new ForbiddenException(UserErrorMessages.FORBIDDEN_BY_ROLE);
+		}
+		return true;
+	}
+}

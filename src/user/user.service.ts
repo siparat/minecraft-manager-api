@@ -10,11 +10,19 @@ export class UserService {
 	constructor(private userRepository: UserRepository) {}
 
 	async createBuilderAccount(dto: CreateBuilderAccountDto): Promise<UserEntity> {
+		return this.createAccount(dto, UserRole.BUILDER);
+	}
+
+	async createManagerAccount(dto: CreateBuilderAccountDto): Promise<UserEntity> {
+		return this.createAccount(dto, UserRole.MANAGER);
+	}
+
+	private async createAccount(dto: CreateBuilderAccountDto, role: UserRole): Promise<UserEntity> {
 		const userIsExist = await this.userRepository.findByUsername(dto.username);
 		if (userIsExist) {
 			throw new ConflictException(UserErrorMessages.USER_IS_EXIST);
 		}
-		const entity = await new UserEntity({ ...dto, role: UserRole.BUILDER }).setPassword(dto.password);
+		const entity = await new UserEntity({ ...dto, role }).setPassword(dto.password);
 		const user = await this.userRepository.createUser(entity);
 		return new UserEntity(user);
 	}

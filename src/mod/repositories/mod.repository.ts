@@ -112,7 +112,7 @@ export class ModRepository {
 								translations: language ? { where: { language: { code: language } } } : true,
 								versions: true,
 								_count: { select: { apps: true, reactions: true } },
-								apps: { select: { appId: true }, where: { appId } }
+								apps: { select: { appId: true, createdById: true }, where: { appId } }
 							}
 						}
 					},
@@ -127,7 +127,7 @@ export class ModRepository {
 						...m,
 						reactionsCount: m._count.reactions,
 						trendingPosition: isActive ? await this.getTrendingPosition(appId, m.id) : null,
-						apps: m.apps.map(({ appId }) => ({ id: appId }))
+						apps: m.apps.map(({ appId, createdById }) => ({ id: appId, createdById }))
 					}))
 				)
 			};
@@ -411,6 +411,12 @@ export class ModRepository {
 				downloadsCount
 			}))
 		};
+	}
+
+	async countAppsNotOwnedBy(modId: number, ownerId: number): Promise<number> {
+		return this.database.appMod.count({
+			where: { modId, app: { OR: [{ createdById: null }, { createdById: { not: ownerId } }] } }
+		});
 	}
 
 	async delete(id: number): Promise<Mod> {

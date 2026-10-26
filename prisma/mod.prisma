@@ -17,6 +17,8 @@ model Mod {
     versions          ModVersion[]
     apps              AppMod[]
     reactions         ModReaction[]
+    createdById       Int?
+    createdBy         User?            @relation(fields: [createdById], references: [id], onDelete: SetNull)
 }
 
 model ModVersion {

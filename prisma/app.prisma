@@ -16,6 +16,8 @@ model App {
     issues         AppIssue[]
     sdk            AppSdk?
     ads            AppAd[]
+    createdById    Int?
+    createdBy      User?            @relation(fields: [createdById], references: [id], onDelete: SetNull)
 }
 
 model AppMod {
@@ -27,6 +29,8 @@ model AppMod {
     order          Int @default(0)
     createdAt      DateTime @default(now())
     downloadsCount Int @default(0)
+    createdById    Int?
+    createdBy      User? @relation(fields: [createdById], references: [id], onDelete: SetNull)
 
     @@unique([appId, modId])
 }

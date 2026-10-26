@@ -14,4 +14,5 @@ export type IAppEntity = PartialFields<
 	| 'banner'
 	| 'firebaseFile'
 	| 'order'
+	| 'createdById'
 >;

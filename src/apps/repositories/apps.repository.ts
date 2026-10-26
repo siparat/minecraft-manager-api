@@ -96,7 +96,7 @@ export class AppsRepository {
 		});
 	}
 
-	async toggleModFromApp(appId: number, modId: number): Promise<App> {
+	async toggleModFromApp(appId: number, modId: number, actorId: number): Promise<App> {
 		try {
 			const modIsConnected =
 				(await this.database.mod.findFirst({ where: { id: modId, apps: { some: { appId } } } })) !== null;
@@ -104,7 +104,7 @@ export class AppsRepository {
 				where: { id: appId },
 				include: { _count: { select: { mods: true } } },
 				data: {
-					mods: modIsConnected ? { deleteMany: { modId, appId } } : { create: { modId } }
+					mods: modIsConnected ? { deleteMany: { modId, appId } } : { create: { modId, createdById: actorId } }
 				}
 			});
 		} catch (error) {
