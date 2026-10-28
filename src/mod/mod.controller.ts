@@ -186,7 +186,7 @@ export class ModController {
 		@Body() dto: UpdateModDto,
 		@UserInfo() user: User
 	): Promise<ModEntity> {
-		const mod = await this.modService.update(id, dto, user);
+		const mod = await this.modService.update(id, dto);
 		Logger.log(`[${user.username}] Мод ${mod.title} изменён`);
 		return mod;
 	}

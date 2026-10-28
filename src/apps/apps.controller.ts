@@ -462,7 +462,7 @@ export class AppsController {
 	}
 
 	@HttpCode(HttpStatus.OK)
-	@UseGuards(JwtAuthGuard, new RoleGuard([UserRole.ADMIN]))
+	@UseGuards(JwtAuthGuard, new RoleGuard([UserRole.ADMIN, UserRole.MANAGER]))
 	@UsePipes(ZodValidationPipe)
 	@Post('order/set')
 	async setOrder(@Body() { order }: SetOrderDto): Promise<void> {
@@ -470,7 +470,7 @@ export class AppsController {
 	}
 
 	@HttpCode(HttpStatus.OK)
-	@UseGuards(JwtAuthGuard, new RoleGuard([UserRole.ADMIN]))
+	@UseGuards(JwtAuthGuard, new RoleGuard([UserRole.ADMIN, UserRole.MANAGER]))
 	@UsePipes(ZodValidationPipe)
 	@Post(':appId/mod/order/set')
 	async setModsOrder(@Body() { order }: SetOrderDto, @Param('appId', ParseIntPipe) appId: number): Promise<void> {

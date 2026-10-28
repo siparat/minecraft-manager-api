@@ -124,13 +124,12 @@ export class ModService {
 		return new ModEntity(mod).setVersions(modEntity.versions);
 	}
 
-	async update(id: number, dto: UpdateModDto, actor: User): Promise<ModEntity> {
+	async update(id: number, dto: UpdateModDto): Promise<ModEntity> {
 		const mod = await this.modRepository.findById(id);
 		if (!mod) {
 			throw new NotFoundException(ModErrorMessages.NOT_FOUND);
 		}
-		assertManagerOwnsResource(actor, mod.createdById);
-		const descriptionChanged = dto.description !== undefined && dto.description !== mod.description;
+				const descriptionChanged = dto.description !== undefined && dto.description !== mod.description;
 
 		const modEntity = new ModEntity({ ...mod, ...dto }).setVersions(
 			dto.versions ? dto.versions.map((version) => ({ version })) : mod.versions
